@@ -2,6 +2,7 @@ package lexer
 
 import (
     "log"
+    "strings"
 )
 
 type Lexer struct {
@@ -33,22 +34,24 @@ func Lex(f *File) []*Token {
 func (l *Lexer) lex() {
     l.resetToken()
 
-    log.Println("Handling:", l.peek(0))
     if l.peek(0) == '/' {
-        l.consume()
-        l.expectL('/', '*')
         l.ignoreComment()
     } else if l.peek(0) == ' ' {
-        l.consume()
         l.ignoreWhitespace()
     } else if l.peek(0) == '\n' {
         l.consume()
     } else if l.peek(0) == '_' || IsLetter(l.peek(0)) {
-        l.consume()
         l.lexIdentifier()
     } else if l.peek(0) == '"' {
-        l.consume()
         l.lexString()
+    } else if IsDecimal(l.peek(0)) {
+        l.lexNumber()
+    } else if l.peek(0) == '\'' {
+        l.lexCharacter()
+    } else if IsOperator(l.peek(0)) {
+        l.lexOperator()
+    } else if IsSeparator(l.peek(0)) {
+        l.lexSeparator()
     }
 }
 
@@ -65,6 +68,8 @@ func (l *Lexer) pushToken(t TokenType) {
 }
 
 func (l *Lexer) ignoreComment() {
+    l.consume()
+    l.expectL('/', '*')
     if l.peek(0) == '/' {
         log.Println("Found single-line comment")
         l.consume()
@@ -84,12 +89,14 @@ func (l *Lexer) ignoreComment() {
 }
 
 func (l *Lexer) ignoreWhitespace() {
+    l.consume()
     for l.peek(0) == ' ' {
         l.consume()
     }
 }
 
 func (l *Lexer) lexIdentifier() {
+    l.consume()
     for IsLetter(l.peek(0)) || IsDecimal(l.peek(0)) || l.peek(0) == '_' {
         l.consume()
     }
@@ -98,6 +105,7 @@ func (l *Lexer) lexIdentifier() {
 }
 
 func (l *Lexer) lexString() {
+    l.consume()
     l.resetToken()
     for {
         if l.peek(0) == '\\' {
@@ -122,12 +130,66 @@ func (l *Lexer) lexEscape(r rune) {
     }
 }
 
+func (l *Lexer) lexNumber() {
+    l.consume()
+    for IsDecimal(l.peek(0)) || l.peek(0) == '.' {
+        l.consume()
+    }
+
+    l.pushToken(TOKEN_NUMBER)
+}
+
+func (l *Lexer) lexCharacter() {
+    l.consume()
+    l.resetToken()
+    for {
+        if l.peek(0) == '\\' {
+            l.consume()
+            l.lexEscape('\'')
+        } else if l.peek(0) == '\'' {
+            l.pushToken(TOKEN_CHARACTER)
+            l.consume()
+            break
+        } else if l.peek(0) == 0 || l.peek(0) == '\n' {
+            log.Fatal("Unterminated character literal")
+        } else {
+            l.consume()
+        }
+    }
+}
+
+func (l *Lexer) lexOperator() {
+    if strings.ContainsRune("=!><", l.peek(0)) {
+        l.consume()
+        if l.peek(0) == '=' {
+            l.consume()
+        }
+    } else {
+        l.consume()
+    }
+
+    l.pushToken(TOKEN_OPERATOR)
+}
+
+func (l *Lexer) lexSeparator() {
+    l.consume()
+    l.pushToken(TOKEN_SEPARATOR)
+}
+
 func IsLetter(r rune) bool {
     return (r >= 'a' && r <= 'z') || (r >= 'A' && r <='Z')
 }
 
 func IsDecimal(r rune) bool {
     return r >= '0' && r <= '9'
+}
+
+func IsOperator(r rune) bool {
+    return strings.ContainsRune("+-*/=><!|&%", r)
+}
+
+func IsSeparator(r rune) bool {
+    return strings.ContainsRune(" :;,.(){}[]", r)
 }
 
 func (l *Lexer) expectF(match func(rune) bool) {

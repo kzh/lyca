@@ -29,8 +29,6 @@ func (f *File) peek(ahead int) rune {
 }
 
 func (f *File) consume() {
-    log.Println("Consumed:", string(f.peek(0)))
-
     f.curr.Raw++
     f.curr.Offset++
 
@@ -39,7 +37,6 @@ func (f *File) consume() {
         f.curr.Offset = 1
     }
 
-    log.Println("Finished consuming")
 }
 
 type Position struct {

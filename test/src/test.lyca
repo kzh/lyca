@@ -4,3 +4,7 @@
 cool "kevin"
 
 "test\""
+
+'a' 'b' 'c'
+
+var j = i + j;
