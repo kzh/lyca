@@ -5,15 +5,15 @@ import (
     "strings"
 )
 
-type Lexer struct {
+type lexer struct {
     *File
-    start Position
+    start  Position
 
     Tokens []*Token
 }
 
 func Lex(f *File) []*Token {
-    lexer := &Lexer{
+    lexer := &lexer{
         f,
         Position{0,1,1},
         []*Token{},
@@ -31,7 +31,7 @@ func Lex(f *File) []*Token {
     return lexer.Tokens
 }
 
-func (l *Lexer) lex() {
+func (l *lexer) lex() {
     l.resetToken()
 
     if l.peek(0) == '/' {
@@ -55,11 +55,11 @@ func (l *Lexer) lex() {
     }
 }
 
-func (l *Lexer) resetToken() {
+func (l *lexer) resetToken() {
     l.start = l.curr
 }
 
-func (l *Lexer) pushToken(t TokenType) {
+func (l *lexer) pushToken(t TokenType) {
     l.Tokens = append(l.Tokens, &Token{
         t,
         string(l.contents[l.start.Raw:l.curr.Raw]),
@@ -67,7 +67,7 @@ func (l *Lexer) pushToken(t TokenType) {
     })
 }
 
-func (l *Lexer) ignoreComment() {
+func (l *lexer) ignoreComment() {
     l.consume()
     l.expectL('/', '*')
     if l.peek(0) == '/' {
@@ -88,14 +88,14 @@ func (l *Lexer) ignoreComment() {
     }
 }
 
-func (l *Lexer) ignoreWhitespace() {
+func (l *lexer) ignoreWhitespace() {
     l.consume()
     for l.peek(0) == ' ' {
         l.consume()
     }
 }
 
-func (l *Lexer) lexIdentifier() {
+func (l *lexer) lexIdentifier() {
     l.consume()
     for IsLetter(l.peek(0)) || IsDecimal(l.peek(0)) || l.peek(0) == '_' {
         l.consume()
@@ -104,7 +104,7 @@ func (l *Lexer) lexIdentifier() {
     l.pushToken(TOKEN_IDENTIFIER)
 }
 
-func (l *Lexer) lexString() {
+func (l *lexer) lexString() {
     l.consume()
     l.resetToken()
     for {
@@ -123,14 +123,14 @@ func (l *Lexer) lexString() {
     }
 }
 
-func (l *Lexer) lexEscape(r rune) {
+func (l *lexer) lexEscape(r rune) {
     switch l.peek(0) {
     case '\\', r:
         l.consume()
     }
 }
 
-func (l *Lexer) lexNumber() {
+func (l *lexer) lexNumber() {
     l.consume()
     for IsDecimal(l.peek(0)) || l.peek(0) == '.' {
         l.consume()
@@ -139,7 +139,7 @@ func (l *Lexer) lexNumber() {
     l.pushToken(TOKEN_NUMBER)
 }
 
-func (l *Lexer) lexCharacter() {
+func (l *lexer) lexCharacter() {
     l.consume()
     l.resetToken()
     for {
@@ -158,7 +158,7 @@ func (l *Lexer) lexCharacter() {
     }
 }
 
-func (l *Lexer) lexOperator() {
+func (l *lexer) lexOperator() {
     if strings.ContainsRune("=!><", l.peek(0)) {
         l.consume()
         if l.peek(0) == '=' {
@@ -171,7 +171,7 @@ func (l *Lexer) lexOperator() {
     l.pushToken(TOKEN_OPERATOR)
 }
 
-func (l *Lexer) lexSeparator() {
+func (l *lexer) lexSeparator() {
     l.consume()
     l.pushToken(TOKEN_SEPARATOR)
 }
@@ -192,13 +192,13 @@ func IsSeparator(r rune) bool {
     return strings.ContainsRune(" :;,.(){}[]", r)
 }
 
-func (l *Lexer) expectF(match func(rune) bool) {
+func (l *lexer) expectF(match func(rune) bool) {
     if !match(l.peek(0)) {
         log.Fatal("Unexpected token:", string(l.peek(0)))
     }
 }
 
-func (l *Lexer) expectL(runes ...rune) {
+func (l *lexer) expectL(runes ...rune) {
     for _, r := range runes {
         if l.peek(0) == r {
             return
@@ -208,7 +208,7 @@ func (l *Lexer) expectL(runes ...rune) {
     log.Fatal("Unexpected token:", string(l.peek(0)))
 }
 
-func (l *Lexer) printTokens() {
+func (l *lexer) printTokens() {
     log.Print("Tokens: [")
     for _, tok := range l.Tokens {
         log.Println(TOKEN_NAMES[tok.Type], tok.Content)

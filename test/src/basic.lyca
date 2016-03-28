@@ -1,5 +1,3 @@
-package main
-
 tmpl Calculator {
     char[] _name;
     func (int, int) > (int) add;
@@ -7,10 +5,10 @@ tmpl Calculator {
     constructor (char[] name) {
         this.name = name;
 
-        add = func (int a, int b) -> (int) {
+        add = func (int a, int b) > (int) {
             return a + b;
         }
-    } 
+    }
 
     func (int a, int b) > sub > (int res) {
         return a - b;
