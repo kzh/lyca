@@ -119,18 +119,30 @@ func (p *parser) parseVarDecl() *VarDeclNode {
     return res
 }
 
-func (p *parser) parseTypeReference() *TypeReferenceNode {
+func (p *parser) parseTypeReference() ParseNode {
     var node ParseNode
     if p.matchToken(0, lexer.TOKEN_IDENTIFIER, KEYWORD_FUNC) {
         node = p.parseFunctionType()
-    } else if false /* p.matchToken(0, lexer.TOKEN_SEPARATOR, "[") */ {
-        //node = p.parseArrayType()
+    } else if  p.matchToken(0, lexer.TOKEN_SEPARATOR, "[") {
+        node = p.parseArrayType()
     } else {
         node = p.parseNamedType()
     }
 
-    res := &TypeReferenceNode{Type: node}
-    res.SetLoc(lexer.Span{node.Loc().Start, node.Loc().End})
+    return node
+}
+
+func (p *parser) parseArrayType() *ArrayTypeNode {
+    if !p.matchToken(0, lexer.TOKEN_SEPARATOR, "[") {
+        return nil
+    }
+    start := p.consume()
+    p.expect(lexer.TOKEN_SEPARATOR, "]")
+
+    t := p.parseTypeReference()
+
+    res := &ArrayTypeNode{MemberType: t}
+    res.SetLoc(lexer.Span{start.Location.Start, t.Loc().End})
     return res
 }
 
@@ -151,8 +163,8 @@ func (p *parser) parseFunctionType() *FunctionTypeNode {
     return res
 }
 
-func (p *parser) parseTypes() []*TypeReferenceNode {
-    var types []*TypeReferenceNode
+func (p *parser) parseTypes() []ParseNode {
+    var types []ParseNode
 
     for {
         if p.matchToken(0, lexer.TOKEN_SEPARATOR, ")") {
@@ -164,7 +176,6 @@ func (p *parser) parseTypes() []*TypeReferenceNode {
         if p.matchToken(0, lexer.TOKEN_SEPARATOR, ",") {
             p.consume()
         } else if !p.matchToken(0, lexer.TOKEN_SEPARATOR, ")") {
-            //Error
         }
     }
 

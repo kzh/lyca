@@ -1,1 +1,3 @@
 func (int, string) > (int, string) transform;
+
+[]int intArray;

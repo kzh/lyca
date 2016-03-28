@@ -1,6 +1,7 @@
 package parser
 
 import (
+    "log"
     "github.com/furryfaust/lyca/src/lexer"
 )
 
@@ -39,10 +40,15 @@ func NewIdentifier(token *lexer.Token) Identifier {
     return Identifier{Loc: token.Location, Value: token.Content}
 }
 
+type ArrayTypeNode struct {
+    baseNode
+    MemberType ParseNode
+}
+
 type FunctionTypeNode struct {
     baseNode
-    Parameters []*TypeReferenceNode
-    Return []*TypeReferenceNode
+    Parameters []ParseNode
+    Return []ParseNode
 }
 
 type NamedTypeNode struct {
@@ -50,14 +56,51 @@ type NamedTypeNode struct {
     Name Identifier
 }
 
-type TypeReferenceNode struct {
-    baseNode
-    Type ParseNode
-}
-
 type VarDeclNode struct {
     baseNode
     Name Identifier
-    Type *TypeReferenceNode
+    Type ParseNode
     Value ParseNode
+}
+
+func (p *ParseTree) Print() {
+    for _, node := range p.Nodes {
+        p.printNode(node, 0)
+    }
+}
+
+func (p *ParseTree) printNode(node ParseNode, pad int) {
+    switch node := node.(type) {
+        case *VarDeclNode:
+            padPrint("[Var Decl Node]", pad)
+            padPrint("Name: " + node.Name.Value, pad + 1)
+            padPrint("Type: ", pad + 1)
+            p.printNode(node.Type, pad + 2)
+        case *FunctionTypeNode:
+            padPrint("[Function Type Node]", pad)
+            padPrint("Parameters: ", pad + 1)
+            for _, param := range node.Parameters {
+                p.printNode(param, pad + 2)
+            }
+            padPrint("Returns: ", pad + 1)
+            for _, ret := range node.Return {
+                p.printNode(ret, pad + 2)
+            }
+        case *NamedTypeNode:
+            padPrint("[Named Type Node]", pad)
+            padPrint("Type: " + node.Name.Value, pad + 1)
+        case *ArrayTypeNode:
+            padPrint("[Array Type Node]", pad)
+            padPrint("Member Type: ", pad + 1)
+            p.printNode(node.MemberType, pad + 2)
+    }
+}
+
+func padPrint(s string, pad int) {
+    padding := ""
+    for ; pad != 0; pad-- {
+        padding += "    ";
+    }
+
+    log.Println(padding + s)
 }
