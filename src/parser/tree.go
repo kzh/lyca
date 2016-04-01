@@ -2,6 +2,7 @@ package parser
 
 import (
     "log"
+    "strconv"
     "github.com/furryfaust/lyca/src/lexer"
 )
 
@@ -63,6 +64,28 @@ type VarDeclNode struct {
     Value ParseNode
 }
 
+type BoolLitNode struct {
+    baseNode
+    Value bool
+}
+
+type NumLitNode struct {
+    baseNode
+}
+
+type CharLitNode struct {
+    baseNode
+    Value rune
+}
+
+type StringLitNode struct {
+    baseNode
+}
+
+type VarAccessNode struct {
+    baseNode
+}
+
 func (p *ParseTree) Print() {
     for _, node := range p.Nodes {
         p.printNode(node, 0)
@@ -76,6 +99,10 @@ func (p *ParseTree) printNode(node ParseNode, pad int) {
             padPrint("Name: " + node.Name.Value, pad + 1)
             padPrint("Type: ", pad + 1)
             p.printNode(node.Type, pad + 2)
+            if node.Value != nil {
+                padPrint("Value: ", pad + 1)
+                p.printNode(node.Value, pad + 2)
+            }
         case *FunctionTypeNode:
             padPrint("[Function Type Node]", pad)
             padPrint("Parameters: ", pad + 1)
@@ -93,6 +120,12 @@ func (p *ParseTree) printNode(node ParseNode, pad int) {
             padPrint("[Array Type Node]", pad)
             padPrint("Member Type: ", pad + 1)
             p.printNode(node.MemberType, pad + 2)
+        case *CharLitNode:
+            padPrint("[Char Lit Node]", pad)
+            padPrint("Value: " + string(node.Value), pad + 1)
+        case *BoolLitNode:
+            padPrint("[Boolean Lit Node]", pad)
+            padPrint("Value: " + strconv.FormatBool(node.Value), pad + 1)
     }
 }
 

@@ -69,7 +69,7 @@ func (l *lexer) pushToken(t TokenType) {
 
 func (l *lexer) ignoreComment() {
     l.consume()
-    l.expectL('/', '*')
+    l.expect('/', '*')
     if l.peek(0) == '/' {
         log.Println("Found single-line comment")
         l.consume()
@@ -192,13 +192,7 @@ func IsSeparator(r rune) bool {
     return strings.ContainsRune(" :;,.(){}[]", r)
 }
 
-func (l *lexer) expectF(match func(rune) bool) {
-    if !match(l.peek(0)) {
-        log.Fatal("Unexpected token:", string(l.peek(0)))
-    }
-}
-
-func (l *lexer) expectL(runes ...rune) {
+func (l *lexer) expect(runes ...rune) {
     for _, r := range runes {
         if l.peek(0) == r {
             return

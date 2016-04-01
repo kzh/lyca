@@ -1,3 +1,5 @@
-func (int, string) > (int, string) transform;
+[][][]func (int, string) > (int, string) multiDimen;
 
-[]int intArray;
+char letter = 'n';
+
+boolean toggle = true;

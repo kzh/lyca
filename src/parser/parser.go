@@ -69,8 +69,7 @@ func (p *parser) parse() {
     }
 }
 
-func (p *parser) parseDecl() ParseNode {
-    var node ParseNode
+func (p *parser) parseDecl() (node ParseNode) {
     if tmplNode := p.parseTemplateDecl(); tmplNode != nil {
         node =  tmplNode
     } else if funcNode := p.parseFuncDecl(); funcNode != nil {
@@ -90,7 +89,7 @@ func (p *parser) parseFuncDecl() ParseNode {
     return nil
 }
 
-func (p *parser) parseVarDecl() *VarDeclNode {
+func (p *parser) parseVarDecl() (res *VarDeclNode) {
     t := p.parseTypeReference()
 
     name := NewIdentifier(p.expect(lexer.TOKEN_IDENTIFIER, ""))
@@ -99,9 +98,10 @@ func (p *parser) parseVarDecl() *VarDeclNode {
     if p.matchToken(0, lexer.TOKEN_OPERATOR, "=") {
         p.consume()
 
+        value = p.parseExpr()
     }
 
-    res := &VarDeclNode{
+    res = &VarDeclNode{
         Name: name,
         Type: t,
     }
@@ -116,11 +116,10 @@ func (p *parser) parseVarDecl() *VarDeclNode {
 
     p.expect(lexer.TOKEN_SEPARATOR, ";")
     res.SetLoc(lexer.Span{t.Loc().Start, end})
-    return res
+    return
 }
 
-func (p *parser) parseTypeReference() ParseNode {
-    var node ParseNode
+func (p *parser) parseTypeReference() (node ParseNode) {
     if p.matchToken(0, lexer.TOKEN_IDENTIFIER, KEYWORD_FUNC) {
         node = p.parseFunctionType()
     } else if  p.matchToken(0, lexer.TOKEN_SEPARATOR, "[") {
@@ -129,10 +128,10 @@ func (p *parser) parseTypeReference() ParseNode {
         node = p.parseNamedType()
     }
 
-    return node
+    return
 }
 
-func (p *parser) parseArrayType() *ArrayTypeNode {
+func (p *parser) parseArrayType() (res *ArrayTypeNode) {
     if !p.matchToken(0, lexer.TOKEN_SEPARATOR, "[") {
         return nil
     }
@@ -141,12 +140,12 @@ func (p *parser) parseArrayType() *ArrayTypeNode {
 
     t := p.parseTypeReference()
 
-    res := &ArrayTypeNode{MemberType: t}
+    res = &ArrayTypeNode{MemberType: t}
     res.SetLoc(lexer.Span{start.Location.Start, t.Loc().End})
-    return res
+    return
 }
 
-func (p *parser) parseFunctionType() *FunctionTypeNode {
+func (p *parser) parseFunctionType() (res *FunctionTypeNode) {
     start := p.consume()
     p.expect(lexer.TOKEN_SEPARATOR, "(")
     params := p.parseTypes()
@@ -158,14 +157,12 @@ func (p *parser) parseFunctionType() *FunctionTypeNode {
     returns := p.parseTypes()
     end := p.expect(lexer.TOKEN_SEPARATOR, ")")
 
-    res := &FunctionTypeNode{Parameters: params, Return: returns}
+    res = &FunctionTypeNode{Parameters: params, Return: returns}
     res.SetLoc(lexer.Span{start.Location.Start, end.Location.End})
-    return res
+    return
 }
 
-func (p *parser) parseTypes() []ParseNode {
-    var types []ParseNode
-
+func (p *parser) parseTypes() (types []ParseNode) {
     for {
         if p.matchToken(0, lexer.TOKEN_SEPARATOR, ")") {
             break
@@ -179,13 +176,101 @@ func (p *parser) parseTypes() []ParseNode {
         }
     }
 
-    return types
+    return
 }
 
-func (p *parser) parseNamedType() *NamedTypeNode {
+func (p *parser) parseNamedType() (res *NamedTypeNode) {
     name := NewIdentifier(p.expect(lexer.TOKEN_IDENTIFIER, ""))
 
-    res := &NamedTypeNode{Name: name}
+    res = &NamedTypeNode{Name: name}
     res.SetLoc(name.Loc)
-    return res
+    return
+}
+
+func (p *parser) parseExpr() (res ParseNode) {
+    res = p.parsePostfixExpr()
+    if res == nil {
+        return
+    }
+
+    return
+}
+
+func (p *parser) parsePostfixExpr() (res ParseNode) {
+    res = p.parsePrimaryExpr()
+    if res == nil {
+        return
+    }
+
+    return
+}
+
+func (p *parser) parsePrimaryExpr() (res ParseNode) {
+    if litExpr := p.parseLitExpr(); litExpr != nil {
+        res = litExpr
+    } else if unaryExpr := p.parseUnaryExpr(); unaryExpr != nil {
+        res = unaryExpr
+    } else if varAcc := p.parseVarAccess(); varAcc != nil {
+        res = varAcc
+    }
+
+    return
+}
+
+func (p *parser) parseLitExpr() (res ParseNode) {
+    if boolLit := p.parseBoolLit(); boolLit != nil {
+        res = boolLit
+    } else if numLit := p.parseNumLit(); numLit != nil {
+        res = numLit
+    } else if strLit := p.parseStringLit(); strLit != nil {
+        res = strLit
+    } else if charLit := p.parseCharLit(); charLit != nil {
+        res = charLit
+    }
+
+    return
+}
+
+func (p *parser) parseUnaryExpr() (res ParseNode) {
+    return
+}
+
+func (p *parser) parseVarAccess() (res *VarAccessNode) {
+    return
+}
+
+func (p *parser) parseBoolLit() (res *BoolLitNode) {
+    if !p.matchToken(0, lexer.TOKEN_IDENTIFIER, "true") && !p.matchToken(0, lexer.TOKEN_IDENTIFIER, "false") {
+        return
+    }
+    token := p.consume()
+
+    value := token.Content == "true"
+    res = &BoolLitNode{Value: value}
+    res.SetLoc(token.Location)
+    return
+}
+
+func (p *parser) parseNumLit() (res *NumLitNode) {
+    if !p.matchToken(0, lexer.TOKEN_NUMBER, "") {
+        return
+    }
+
+    return
+}
+
+func (p *parser) parseStringLit() (res *StringLitNode) {
+    return
+}
+
+func (p *parser) parseCharLit() (res *CharLitNode) {
+    if !p.matchToken(0, lexer.TOKEN_CHARACTER, "") {
+        return
+    }
+
+    token := p.consume()
+
+    res = &CharLitNode{Value: []rune(token.Content)[0]}
+    res.SetLoc(token.Location)
+    return
 }
