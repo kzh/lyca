@@ -182,11 +182,13 @@ func (p *parser) parseTypes() (types []ParseNode) {
 
         types = append(types, p.parseTypeReference())
 
-        if p.matchToken(0, lexer.TOKEN_SEPARATOR, ",") {
-            p.consume()
-        } else if !p.matchToken(0, lexer.TOKEN_SEPARATOR, ")") {
+        if !p.matchToken(0, lexer.TOKEN_SEPARATOR, ",") {
+            break
         }
+
+        p.consume()
     }
+    p.expect(lexer.TOKEN_SEPARATOR, ")")
 
     return
 }
@@ -214,6 +216,60 @@ func (p *parser) parsePostfixExpr() (res ParseNode) {
         return
     }
 
+    for {
+        if p.matchToken(0, lexer.TOKEN_SEPARATOR, ".") {
+            res = p.parseObjectAccess(res)
+        } else if p.matchToken(0, lexer.TOKEN_SEPARATOR, "[") {
+            res = p.parseArrayAccess(res)
+        } else if p.matchToken(0, lexer.TOKEN_SEPARATOR, "(") {
+            res = p.parseCallExpr(res)
+        } else {
+            break
+        }
+    }
+
+    return
+}
+
+func (p *parser) parseObjectAccess(obj ParseNode) (res *ObjectAccessNode) {
+    p.consume()
+    member := p.expect(lexer.TOKEN_IDENTIFIER, "")
+
+    res = &ObjectAccessNode{Object: obj, Member: NewIdentifier(member)}
+    res.SetLoc(lexer.Span{obj.Loc().Start, member.Location.End})
+    return
+}
+
+func (p *parser) parseArrayAccess(arr ParseNode) (res *ArrayAccessNode) {
+    p.consume()
+    index := p.parseExpr()
+    end := p.expect(lexer.TOKEN_SEPARATOR, "]")
+
+    res = &ArrayAccessNode{Array: arr, Index: index}
+    res.SetLoc(lexer.Span{arr.Loc().Start, end.Location.End})
+    return
+}
+
+func (p *parser) parseCallExpr(fn ParseNode) (res *CallExprNode) {
+    p.consume()
+
+    var args []ParseNode
+    for {
+        if p.matchToken(0, lexer.TOKEN_SEPARATOR, ")") {
+            break
+        }
+
+        args = append(args, p.parseExpr())
+
+        if !p.matchToken(0, lexer.TOKEN_SEPARATOR, ",") {
+            break
+        }
+        p.consume()
+    }
+    end := p.expect(lexer.TOKEN_SEPARATOR, ")")
+
+    res = &CallExprNode{Function: fn, Arguments: args}
+    res.SetLoc(lexer.Span{fn.Loc().Start, end.Location.End})
     return
 }
 

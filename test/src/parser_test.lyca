@@ -10,6 +10,12 @@ int i = 5;
 float f = 5.5;
 */
 
+/*
 boolean isCool = true;
 boolean cool = isCool;
 boolean notCool = !cool;
+*/
+
+String talent = kevin.getTalents("cool")[0];
+
+String cool = factory()()()()[0][0];

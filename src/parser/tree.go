@@ -97,6 +97,24 @@ type VarAccessNode struct {
     Name Identifier
 }
 
+type ObjectAccessNode struct {
+    baseNode
+    Object ParseNode
+    Member Identifier
+}
+
+type ArrayAccessNode struct {
+    baseNode
+    Array ParseNode
+    Index ParseNode
+}
+
+type CallExprNode struct {
+    baseNode
+    Function ParseNode
+    Arguments []ParseNode
+}
+
 func (p *ParseTree) Print() {
     for _, node := range p.Nodes {
         p.printNode(node, 0)
@@ -155,6 +173,25 @@ func (p *ParseTree) printNode(node ParseNode, pad int) {
     case *VarAccessNode:
         padPrint("[Var Access Node]", pad)
         padPrint("Name: " + node.Name.Value, pad + 1)
+    case *ObjectAccessNode:
+        padPrint("[Object Access Node]", pad)
+        padPrint("Object: ", pad + 1)
+        p.printNode(node.Object, pad + 2)
+        padPrint("Member: " + node.Member.Value, pad + 1)
+    case *ArrayAccessNode:
+        padPrint("[Array Access Node]", pad)
+        padPrint("Array: ", pad + 1)
+        p.printNode(node.Array, pad + 2)
+        padPrint("Index: ", pad + 1)
+        p.printNode(node.Index, pad + 2)
+    case *CallExprNode:
+        padPrint("[Call Expr Node]", pad)
+        padPrint("Function: ", pad + 1)
+        p.printNode(node.Function, pad + 2)
+        padPrint("Arguments: ", pad + 1)
+        for _, arg := range node.Arguments {
+            p.printNode(arg, pad + 2)
+        }
     }
 }
 
