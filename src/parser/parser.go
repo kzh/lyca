@@ -42,9 +42,19 @@ func (p *parser) consume() *lexer.Token {
     return tok
 }
 
-func (p *parser) matchToken(ahead int, t lexer.TokenType, content string) bool {
+func (p *parser) matchToken(ahead int, t lexer.TokenType, contents ...string) bool {
     tok := p.peek(ahead)
-    return tok != nil && tok.Type == t && (content == tok.Content || content == "")
+    if tok == nil || tok.Type != t {
+        return false
+    }
+
+    for i := 0; i != len(contents); i++ {
+        if contents[i] == "" || contents[i] == tok.Content {
+            return true
+        }
+    }
+
+    return false
 }
 
 func (p *parser) matchTokens(tokens ...interface{}) bool {
@@ -233,16 +243,31 @@ func (p *parser) parseLitExpr() (res ParseNode) {
     return
 }
 
-func (p *parser) parseUnaryExpr() (res ParseNode) {
+func (p *parser) parseUnaryExpr() (res *UnaryExprNode) {
+    if !p.matchToken(0, lexer.TOKEN_OPERATOR, "!", "-") {
+        return
+    }
+    operator := p.consume()
+    value := p.parsePostfixExpr()
+
+    res = &UnaryExprNode{Value: value, Operator: operator.Content}
+    res.SetLoc(lexer.Span{operator.Location.Start, value.Loc().End})
     return
 }
 
 func (p *parser) parseVarAccess() (res *VarAccessNode) {
+    if !p.matchToken(0, lexer.TOKEN_IDENTIFIER, "") {
+        return
+    }
+    token := p.consume()
+
+    res = &VarAccessNode{Name: NewIdentifier(token)}
+    res.SetLoc(token.Location)
     return
 }
 
 func (p *parser) parseBoolLit() (res *BoolLitNode) {
-    if !p.matchToken(0, lexer.TOKEN_IDENTIFIER, "true") && !p.matchToken(0, lexer.TOKEN_IDENTIFIER, "false") {
+    if !p.matchToken(0, lexer.TOKEN_IDENTIFIER, "true", "false") {
         return
     }
     token := p.consume()

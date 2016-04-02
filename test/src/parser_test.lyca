@@ -1,9 +1,15 @@
+/*
 [][][]func (int, string) > (int, string) multiDimen;
 
 char letter = 'n';
 
-boolean toggle = true;
+boolean toggle = false;
 String hello = "cool";
 
 int i = 5;
 float f = 5.5;
+*/
+
+boolean isCool = true;
+boolean cool = isCool;
+boolean notCool = !cool;

@@ -86,8 +86,15 @@ type StringLitNode struct {
     Value string
 }
 
+type UnaryExprNode struct {
+    baseNode
+    Operator string
+    Value ParseNode
+}
+
 type VarAccessNode struct {
     baseNode
+    Name Identifier
 }
 
 func (p *ParseTree) Print() {
@@ -140,6 +147,14 @@ func (p *ParseTree) printNode(node ParseNode, pad int) {
         } else {
             padPrint("Value: " + strconv.Itoa(node.IntValue), pad + 1)
         }
+    case *UnaryExprNode:
+        padPrint("[Unary Expr Node]", pad)
+        padPrint("Operator: " + node.Operator, pad + 1)
+        padPrint("Value: ", pad + 1)
+        p.printNode(node.Value, pad + 2)
+    case *VarAccessNode:
+        padPrint("[Var Access Node]", pad)
+        padPrint("Name: " + node.Name.Value, pad + 1)
     }
 }
 
