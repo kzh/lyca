@@ -2,6 +2,8 @@ package parser
 
 import (
     "log"
+    "strings"
+    "strconv"
     "github.com/furryfaust/lyca/src/lexer"
 )
 
@@ -255,11 +257,36 @@ func (p *parser) parseNumLit() (res *NumLitNode) {
     if !p.matchToken(0, lexer.TOKEN_NUMBER, "") {
         return
     }
+    token := p.consume()
+
+    res = &NumLitNode{}
+    res.SetLoc(token.Location)
+
+    count := strings.Count(token.Content, ".")
+    if count == 0 {
+        val, err := strconv.Atoi(token.Content)
+        if err == nil {
+            res.IntValue = val
+        }
+    } else if count == 1 {
+        val, err := strconv.ParseFloat(token.Content, 64)
+        if err == nil {
+            res.FloatValue = val
+            res.IsFloat = true
+        }
+    }
 
     return
 }
 
 func (p *parser) parseStringLit() (res *StringLitNode) {
+    if !p.matchToken(0, lexer.TOKEN_STRING, "") {
+        return
+    }
+    token := p.consume()
+
+    res = &StringLitNode{Value: token.Content}
+    res.SetLoc(token.Location)
     return
 }
 
@@ -267,7 +294,6 @@ func (p *parser) parseCharLit() (res *CharLitNode) {
     if !p.matchToken(0, lexer.TOKEN_CHARACTER, "") {
         return
     }
-
     token := p.consume()
 
     res = &CharLitNode{Value: []rune(token.Content)[0]}

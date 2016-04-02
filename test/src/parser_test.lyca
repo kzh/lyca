@@ -3,3 +3,7 @@
 char letter = 'n';
 
 boolean toggle = true;
+String hello = "cool";
+
+int i = 5;
+float f = 5.5;
