@@ -16,6 +16,12 @@ boolean cool = isCool;
 boolean notCool = !cool;
 */
 
+/*
 String talent = kevin.getTalents("cool")[0];
 
 String cool = factory()()()()[0][0];
+
+String name = getName(7, 8.5, "cool");
+*/
+
+Animal dog = make Animal("dog", 5);

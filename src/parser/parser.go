@@ -253,7 +253,15 @@ func (p *parser) parseArrayAccess(arr ParseNode) (res *ArrayAccessNode) {
 func (p *parser) parseCallExpr(fn ParseNode) (res *CallExprNode) {
     p.consume()
 
-    var args []ParseNode
+    args := p.parseArguments()
+    end := p.expect(lexer.TOKEN_SEPARATOR, ")")
+
+    res = &CallExprNode{Function: fn, Arguments: args}
+    res.SetLoc(lexer.Span{fn.Loc().Start, end.Location.End})
+    return
+}
+
+func (p *parser) parseArguments() (args []ParseNode) {
     for {
         if p.matchToken(0, lexer.TOKEN_SEPARATOR, ")") {
             break
@@ -266,15 +274,14 @@ func (p *parser) parseCallExpr(fn ParseNode) (res *CallExprNode) {
         }
         p.consume()
     }
-    end := p.expect(lexer.TOKEN_SEPARATOR, ")")
 
-    res = &CallExprNode{Function: fn, Arguments: args}
-    res.SetLoc(lexer.Span{fn.Loc().Start, end.Location.End})
     return
 }
 
 func (p *parser) parsePrimaryExpr() (res ParseNode) {
-    if litExpr := p.parseLitExpr(); litExpr != nil {
+    if makeExpr := p.parseMakeExpr(); makeExpr != nil {
+        res = makeExpr
+    } else if litExpr := p.parseLitExpr(); litExpr != nil {
         res = litExpr
     } else if unaryExpr := p.parseUnaryExpr(); unaryExpr != nil {
         res = unaryExpr
@@ -282,6 +289,21 @@ func (p *parser) parsePrimaryExpr() (res ParseNode) {
         res = varAcc
     }
 
+    return
+}
+
+func (p *parser) parseMakeExpr() (res *MakeExprNode) {
+    if !p.matchToken(0, lexer.TOKEN_IDENTIFIER, "make") {
+        return nil
+    }
+    start     := p.consume()
+    template  := NewIdentifier(p.expect(lexer.TOKEN_IDENTIFIER, ""))
+    p.expect(lexer.TOKEN_SEPARATOR, "(")
+    construct := p.parseArguments()
+    end := p.expect(lexer.TOKEN_SEPARATOR, ")")
+
+    res = &MakeExprNode{Template: template, Arguments: construct}
+    res.SetLoc(lexer.Span{start.Location.Start, end.Location.Start})
     return
 }
 

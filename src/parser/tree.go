@@ -64,6 +64,12 @@ type VarDeclNode struct {
     Value ParseNode
 }
 
+type MakeExprNode struct {
+    baseNode
+    Template Identifier
+    Arguments []ParseNode
+}
+
 type BoolLitNode struct {
     baseNode
     Value bool
@@ -189,6 +195,12 @@ func (p *ParseTree) printNode(node ParseNode, pad int) {
         padPrint("Function: ", pad + 1)
         p.printNode(node.Function, pad + 2)
         padPrint("Arguments: ", pad + 1)
+        for _, arg := range node.Arguments {
+            p.printNode(arg, pad + 2)
+        }
+    case *MakeExprNode:
+        padPrint("[Make Expr Node]", pad)
+        padPrint("Template: " + node.Template.Value, pad + 1)
         for _, arg := range node.Arguments {
             p.printNode(arg, pad + 2)
         }
