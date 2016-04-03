@@ -7,6 +7,13 @@ import (
     "github.com/furryfaust/lyca/src/lexer"
 )
 
+var OPERATOR_PRECEDENCE map[string]int = map[string]int{
+    "==": 1, "!=": 1,
+    ">":  2, "<":  2, ">=": 2, "<=": 2,
+    "+":  3, "-":  3,
+    "*":  4, "/":  4, "%": 4,
+}
+
 type parser struct {
     Tree  *ParseTree
     tokens []*lexer.Token
@@ -69,7 +76,7 @@ func (p *parser) matchTokens(tokens ...interface{}) bool {
 
 func (p *parser) expect(t lexer.TokenType, content string) *lexer.Token {
     if !p.matchToken(0, t, content) {
-        log.Fatal("Unexpected token", p.peek(0).Content)
+        log.Fatal("Unexpected token ", p.peek(0).Content)
     }
 
     return p.consume()
@@ -202,12 +209,67 @@ func (p *parser) parseNamedType() (res *NamedTypeNode) {
 }
 
 func (p *parser) parseExpr() (res ParseNode) {
-    res = p.parsePostfixExpr()
-    if res == nil {
+    if res = p.parsePostfixExpr(); res == nil {
         return
     }
 
+    if bin := p.parseBinaryExpr(res); bin != nil {
+        res = bin
+    }
+
     return
+}
+
+/*
+1 + 2 * 3 + 4 / 5
+
+(1 + 2)
+(1 + 2) * 3
+(1 + (2 * 3))
+((1 + (2 * 3)) + 4)
+((1 + (2 * 3)) + 4) / 5
+((1 + (2 * 3)) + (4 / 5))
+*/
+func (p *parser) parseBinaryExpr(expr ParseNode) ParseNode {
+    if !p.matchToken(0, lexer.TOKEN_OPERATOR, "") {
+        return nil
+    }
+    rollback := p.curr
+
+    for {
+        if !p.matchToken(0, lexer.TOKEN_OPERATOR, "") {
+            break
+        }
+
+        operator := p.consume()
+        precedence := OPERATOR_PRECEDENCE[operator.Content]
+
+        right := p.parsePostfixExpr()
+        if right == nil {
+            goto rollback
+        }
+
+        if p.matchToken(0, lexer.TOKEN_OPERATOR, "") {
+            next := OPERATOR_PRECEDENCE[p.peek(0).Content]
+            if next > precedence {
+                if right = p.parseBinaryExpr(right); right == nil {
+                    goto rollback
+                }
+            }
+        }
+
+        expr = &BinaryExprNode{
+            Operator: NewIdentifier(operator),
+            Left: expr,
+            Right: right,
+        }
+        expr.SetLoc(lexer.Span{expr.Loc().Start, right.Loc().End})
+    }
+    return expr
+
+rollback:
+    p.curr = rollback
+    return nil
 }
 
 func (p *parser) parsePostfixExpr() (res ParseNode) {

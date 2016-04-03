@@ -17,4 +17,5 @@ func TestParser(t *testing.T) {
     toks := lexer.Lex(lexer.LycaFile(f))
     tree := parser.Parse(toks)
     tree.Print()
+
 }

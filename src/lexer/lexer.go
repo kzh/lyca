@@ -34,7 +34,7 @@ func Lex(f *File) []*Token {
 func (l *lexer) lex() {
     l.resetToken()
 
-    if l.peek(0) == '/' {
+    if l.peek(0) == '/' && (l.peek(1) == '/' || l.peek(1) == '*') {
         l.ignoreComment()
     } else if l.peek(0) == ' ' {
         l.ignoreWhitespace()
@@ -71,14 +71,12 @@ func (l *lexer) ignoreComment() {
     l.consume()
     l.expect('/', '*')
     if l.peek(0) == '/' {
-        log.Println("Found single-line comment")
         l.consume()
         for l.peek(0) != '\n' {
             l.consume()
         }
         l.consume()
     } else if l.peek(0) == '*' {
-        log.Println("Found multi-line comment")
         l.consume()
         for l.peek(0) != '*' && l.peek(0) != '/' {
             l.consume()
@@ -166,6 +164,9 @@ func (l *lexer) lexOperator() {
         }
     } else {
         l.consume()
+        if IsOperator(l.peek(0)) && l.peek(0) != '=' {
+            l.consume()
+        }
     }
 
     l.pushToken(TOKEN_OPERATOR)

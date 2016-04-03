@@ -24,4 +24,10 @@ String cool = factory()()()()[0][0];
 String name = getName(7, 8.5, "cool");
 */
 
+/*
 Animal dog = make Animal("dog", 5);
+
+boolean equal = 55;
+*/
+
+int sum = 1 + 2 * 3 + 4 / 5;

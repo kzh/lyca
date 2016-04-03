@@ -98,6 +98,13 @@ type UnaryExprNode struct {
     Value ParseNode
 }
 
+type BinaryExprNode struct {
+    baseNode
+    Left ParseNode
+    Right ParseNode
+    Operator Identifier
+}
+
 type VarAccessNode struct {
     baseNode
     Name Identifier
@@ -204,6 +211,13 @@ func (p *ParseTree) printNode(node ParseNode, pad int) {
         for _, arg := range node.Arguments {
             p.printNode(arg, pad + 2)
         }
+    case *BinaryExprNode:
+        padPrint("[Binary Expr Node]", pad)
+        padPrint("Operator: " + node.Operator.Value, pad + 1)
+        padPrint("Left: ", pad + 1)
+        p.printNode(node.Left, pad + 2)
+        padPrint("Right: ", pad + 1)
+        p.printNode(node.Right, pad + 2)
     }
 }
 
