@@ -1,6 +1,6 @@
-/*
-[][][]func (int, string) > (int, string) multiDimen;
+//[][][]func (int, string) > (int) multiDimen;
 
+/*
 char letter = 'n';
 
 boolean toggle = false;
@@ -30,4 +30,10 @@ Animal dog = make Animal("dog", 5);
 boolean equal = 55;
 */
 
-int sum = 1 + 2 * 3 + 4 / 5;
+//int sum = 1 + 2 * 3 + 4 / 5;
+//int bonus = make Game().points + 100;
+
+
+func (int, string) > (int) expr;
+func () > main > () 
+func (int a, int b) > sub > (int) 

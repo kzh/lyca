@@ -49,7 +49,7 @@ type ArrayTypeNode struct {
 type FunctionTypeNode struct {
     baseNode
     Parameters []ParseNode
-    Return []ParseNode
+    Return ParseNode
 }
 
 type NamedTypeNode struct {
@@ -128,6 +128,33 @@ type CallExprNode struct {
     Arguments []ParseNode
 }
 
+type FuncExprNode struct {
+    baseNode
+    Function ParseNode
+}
+
+type TemplateNode struct {
+    baseNode
+}
+
+type FuncNode struct {
+    baseNode
+    Signature ParseNode
+}
+
+type FuncSignatureNode struct {
+    baseNode
+    Name Identifier
+    Parameters []ParseNode
+    Return ParseNode
+}
+
+type FuncDeclNode struct {
+    baseNode
+    Function ParseNode
+}
+
+
 func (p *ParseTree) Print() {
     for _, node := range p.Nodes {
         p.printNode(node, 0)
@@ -135,6 +162,10 @@ func (p *ParseTree) Print() {
 }
 
 func (p *ParseTree) printNode(node ParseNode, pad int) {
+    if node == nil {
+        return
+    }
+
     switch node := node.(type) {
     case *VarDeclNode:
         padPrint("[Var Decl Node]", pad)
@@ -151,10 +182,8 @@ func (p *ParseTree) printNode(node ParseNode, pad int) {
         for _, param := range node.Parameters {
             p.printNode(param, pad + 2)
         }
-        padPrint("Returns: ", pad + 1)
-        for _, ret := range node.Return {
-            p.printNode(ret, pad + 2)
-        }
+        padPrint("Return: ", pad + 1)
+        p.printNode(node.Return, pad + 2)
     case *NamedTypeNode:
         padPrint("[Named Type Node]", pad)
         padPrint("Type: " + node.Name.Value, pad + 1)
@@ -218,6 +247,23 @@ func (p *ParseTree) printNode(node ParseNode, pad int) {
         p.printNode(node.Left, pad + 2)
         padPrint("Right: ", pad + 1)
         p.printNode(node.Right, pad + 2)
+    case *FuncDeclNode:
+        padPrint("[Func Decl Node]", pad)
+        padPrint("Function: ", pad + 1)
+        p.printNode(node.Function, pad + 2)
+    case *FuncNode:
+        padPrint("[Func Node]", pad)
+        padPrint("Signature: ", pad + 1)
+        p.printNode(node.Signature, pad + 1)
+    case *FuncSignatureNode:
+        padPrint("[Func Signature Node]", pad)
+        padPrint("Name: " + node.Name.Value, pad + 1)
+        padPrint("Parameters: ", pad + 1)
+        for _, param := range node.Parameters {
+            p.printNode(param, pad + 2)
+        }
+        padPrint("Return: ", pad + 1)
+        p.printNode(node.Return, pad + 2)
     }
 }
 

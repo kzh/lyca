@@ -95,6 +95,7 @@ func (p *parser) parseDecl() (node ParseNode) {
         node = funcNode
     } else if varNode := p.parseVarDecl(); varNode != nil {
         node = varNode
+        p.expect(lexer.TOKEN_SEPARATOR, ";")
     }
 
     return node
@@ -104,14 +105,83 @@ func (p *parser) parseTemplateDecl() ParseNode {
     return nil
 }
 
-func (p *parser) parseFuncDecl() ParseNode {
-    return nil
+func (p *parser) parseFuncDecl() (res *FuncDeclNode) {
+    function := p.parseFunc(false)
+    if function == nil {
+        return
+    }
+
+    res = &FuncDeclNode{Function: function}
+    res.SetLoc(function.Loc())
+    return
+}
+
+func (p *parser) parseFunc(anon bool) (res *FuncNode) {
+    sig := p.parseFuncSignature(anon)
+    if sig == nil {
+        return
+    }
+
+    res = &FuncNode{Signature: sig}
+    return
+}
+
+func (p *parser) parseFuncSignature(anon bool) (res *FuncSignatureNode) {
+    if !p.matchToken(0, lexer.TOKEN_IDENTIFIER, KEYWORD_FUNC) {
+        return
+    }
+    rollback := p.curr
+    start := p.consume()
+    var end *lexer.Token
+
+    p.expect(lexer.TOKEN_SEPARATOR, "(")
+    var params []ParseNode
+    for {
+        if p.matchToken(0, lexer.TOKEN_SEPARATOR, ")") {
+            break
+        }
+
+        decl := p.parseVarDecl()
+        if decl == nil {
+            goto rollback
+        }
+        params = append(params, decl)
+
+        if !p.matchToken(0, lexer.TOKEN_SEPARATOR, ",") {
+            break
+        }
+        p.consume()
+    }
+    p.expect(lexer.TOKEN_SEPARATOR, ")")
+    p.expect(lexer.TOKEN_OPERATOR, ">")
+
+    res = &FuncSignatureNode{Parameters: params}
+    if !anon {
+        res.Name = NewIdentifier(p.expect(lexer.TOKEN_IDENTIFIER, ""))
+        p.expect(lexer.TOKEN_OPERATOR, ">")
+    }
+
+    p.expect(lexer.TOKEN_SEPARATOR, "(")
+    if !p.matchToken(0, lexer.TOKEN_SEPARATOR, ")") {
+        res.Return = p.parseTypeReference()
+    }
+    end = p.expect(lexer.TOKEN_SEPARATOR, ")")
+
+    res.SetLoc(lexer.Span{start.Location.Start, end.Location.End})
+    return
+
+rollback:
+    p.curr = rollback
+    return
 }
 
 func (p *parser) parseVarDecl() (res *VarDeclNode) {
     t := p.parseTypeReference()
 
-    name := NewIdentifier(p.expect(lexer.TOKEN_IDENTIFIER, ""))
+    if !p.matchToken(0, lexer.TOKEN_IDENTIFIER, "") {
+        return nil
+    }
+    name := NewIdentifier(p.consume())
 
     var value ParseNode
     if p.matchToken(0, lexer.TOKEN_OPERATOR, "=") {
@@ -133,7 +203,6 @@ func (p *parser) parseVarDecl() (res *VarDeclNode) {
         end = name.Loc.End
     }
 
-    p.expect(lexer.TOKEN_SEPARATOR, ";")
     res.SetLoc(lexer.Span{t.Loc().Start, end})
     return
 }
@@ -173,10 +242,13 @@ func (p *parser) parseFunctionType() (res *FunctionTypeNode) {
     p.expect(lexer.TOKEN_OPERATOR, ">")
 
     p.expect(lexer.TOKEN_SEPARATOR, "(")
-    returns := p.parseTypes()
+    var ret ParseNode
+    if !p.matchToken(0, lexer.TOKEN_SEPARATOR, ")") {
+        ret = p.parseTypeReference()
+    }
     end := p.expect(lexer.TOKEN_SEPARATOR, ")")
 
-    res = &FunctionTypeNode{Parameters: params, Return: returns}
+    res = &FunctionTypeNode{Parameters: params, Return: ret}
     res.SetLoc(lexer.Span{start.Location.Start, end.Location.End})
     return
 }
@@ -195,7 +267,6 @@ func (p *parser) parseTypes() (types []ParseNode) {
 
         p.consume()
     }
-    p.expect(lexer.TOKEN_SEPARATOR, ")")
 
     return
 }

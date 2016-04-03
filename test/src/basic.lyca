@@ -10,7 +10,7 @@ tmpl Calculator {
         }
     }
 
-    func (int a, int b) > sub > (int res) {
+    func (int a, int b) > sub > (int) {
         return a - b;
     }
 }
