@@ -101,6 +101,42 @@ func (p *parser) parseDecl() (node ParseNode) {
     return node
 }
 
+func (p *parser) parseBlock() (res *BlockNode) {
+    if !p.matchToken(0, lexer.TOKEN_SEPARATOR, "{") {
+        return
+    }
+    start := p.expect(lexer.TOKEN_SEPARATOR, "{")
+
+    var nodes []ParseNode
+    for {
+        node := p.parseNode()
+        if node == nil {
+            break
+        }
+
+        nodes = append(nodes, node)
+    }
+
+    end := p.expect(lexer.TOKEN_SEPARATOR, "}")
+
+    res = &BlockNode{Nodes: nodes}
+    res.SetLoc(lexer.Span{start.Location.Start, end.Location.End})
+    return
+}
+
+func (p *parser) parseNode() (res ParseNode) {
+    if stmt := p.parseStmt(); stmt != nil {
+        res = stmt
+    } else if varDecl := p.parseVarDecl(); varDecl != nil {
+        res = varDecl
+    }
+
+    if res != nil {
+        p.expect(lexer.TOKEN_SEPARATOR, ";")
+    }
+    return
+}
+
 func (p *parser) parseTemplateDecl() ParseNode {
     return nil
 }
@@ -121,8 +157,10 @@ func (p *parser) parseFunc(anon bool) (res *FuncNode) {
     if sig == nil {
         return
     }
+    body := p.parseBlock()
 
-    res = &FuncNode{Signature: sig}
+    res = &FuncNode{Signature: sig, Body: body}
+    res.SetLoc(lexer.Span{sig.Loc().Start, body.Loc().End})
     return
 }
 
@@ -175,10 +213,58 @@ rollback:
     return
 }
 
+func (p *parser) parseStmt() (res ParseNode) {
+    if returnStmt := p.parseReturnStmt(); returnStmt != nil {
+        res = returnStmt
+    } else if callStmt := p.parseCallStmt(); callStmt != nil {
+        res = callStmt
+    } /* else if assignStmt := p.parseAssignStmt(); assignStmt != nil {
+        res = assignStmt
+    } else if binopAssign := p.parseBinopAssignStmt(); binopAssign != nil {
+        res = assignStmt
+    } */
+
+    return
+}
+
+func (p *parser) parseCallStmt() (res *CallStmtNode) {
+    rollback := p.curr
+
+    callExpr, ok := p.parseExpr().(*CallExprNode)
+    if !ok {
+        p.curr = rollback
+        return
+    }
+
+    res = &CallStmtNode{Call: callExpr}
+    res.SetLoc(callExpr.Loc())
+    return
+}
+
+func (p *parser) parseReturnStmt() (res *ReturnStmtNode) {
+    if !p.matchToken(0, lexer.TOKEN_IDENTIFIER, KEYWORD_RETURN) {
+        return
+    }
+    token := p.consume()
+
+    var (
+        expr ParseNode
+        end  lexer.Position = token.Location.End
+    )
+
+    if !p.matchToken(0, lexer.TOKEN_SEPARATOR, ";") {
+        expr = p.parseExpr()
+        end  = expr.Loc().End
+    }
+
+    res = &ReturnStmtNode{Value: expr}
+    res.SetLoc(lexer.Span{token.Location.Start, end})
+    return
+}
+
 func (p *parser) parseVarDecl() (res *VarDeclNode) {
     t := p.parseTypeReference()
-
-    if !p.matchToken(0, lexer.TOKEN_IDENTIFIER, "") {
+    if t == nil || !p.matchToken(0, lexer.TOKEN_IDENTIFIER, "") {
         return nil
     }
     name := NewIdentifier(p.consume())
@@ -272,7 +358,10 @@ func (p *parser) parseTypes() (types []ParseNode) {
 }
 
 func (p *parser) parseNamedType() (res *NamedTypeNode) {
-    name := NewIdentifier(p.expect(lexer.TOKEN_IDENTIFIER, ""))
+    if !p.matchToken(0, lexer.TOKEN_IDENTIFIER, "") {
+        return
+    }
+    name := NewIdentifier(p.consume())
 
     res = &NamedTypeNode{Name: name}
     res.SetLoc(name.Loc)

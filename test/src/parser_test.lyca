@@ -33,7 +33,18 @@ boolean equal = 55;
 //int sum = 1 + 2 * 3 + 4 / 5;
 //int bonus = make Game().points + 100;
 
+//func (int, int) > (int) add;
 
+/*
 func (int, string) > (int) expr;
-func () > main > () 
-func (int a, int b) > sub > (int) 
+func () > main > ()
+*/
+
+func (int a, int b) > sub > () {
+    int i = a - b;
+    return i;
+}
+
+func () > create_function > (func (int, int) > (int)) {
+    return;
+}

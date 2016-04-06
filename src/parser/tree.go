@@ -139,7 +139,9 @@ type TemplateNode struct {
 
 type FuncNode struct {
     baseNode
+    Anon bool
     Signature ParseNode
+    Body ParseNode
 }
 
 type FuncSignatureNode struct {
@@ -152,8 +154,23 @@ type FuncSignatureNode struct {
 type FuncDeclNode struct {
     baseNode
     Function ParseNode
+    Body ParseNode
 }
 
+type BlockNode struct {
+    baseNode
+    Nodes []ParseNode
+}
+
+type ReturnStmtNode struct {
+    baseNode
+    Value ParseNode
+}
+
+type CallStmtNode struct {
+    baseNode
+    Call ParseNode
+}
 
 func (p *ParseTree) Print() {
     for _, node := range p.Nodes {
@@ -255,6 +272,8 @@ func (p *ParseTree) printNode(node ParseNode, pad int) {
         padPrint("[Func Node]", pad)
         padPrint("Signature: ", pad + 1)
         p.printNode(node.Signature, pad + 1)
+        padPrint("Body: ", pad + 1)
+        p.printNode(node.Body, pad + 1)
     case *FuncSignatureNode:
         padPrint("[Func Signature Node]", pad)
         padPrint("Name: " + node.Name.Value, pad + 1)
@@ -264,6 +283,20 @@ func (p *ParseTree) printNode(node ParseNode, pad int) {
         }
         padPrint("Return: ", pad + 1)
         p.printNode(node.Return, pad + 2)
+    case *BlockNode:
+        padPrint("[Block Node]", pad)
+        padPrint("Nodes: ", pad + 1)
+        for _, node := range node.Nodes {
+            p.printNode(node, pad + 2)
+        }
+    case *CallStmtNode:
+        padPrint("[Call Stmt Node]", pad)
+        padPrint("Expr: ", pad + 1)
+        p.printNode(node.Call, pad + 2)
+    case *ReturnStmtNode:
+        padPrint("[Return Stmt Node]", pad)
+        padPrint("Return: ", pad + 1)
+        p.printNode(node.Value, pad + 2)
     }
 }
 
