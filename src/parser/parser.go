@@ -218,9 +218,9 @@ func (p *parser) parseStmt() (res ParseNode) {
         res = returnStmt
     } else if callStmt := p.parseCallStmt(); callStmt != nil {
         res = callStmt
-    } /* else if assignStmt := p.parseAssignStmt(); assignStmt != nil {
+    } else if assignStmt := p.parseAssignStmt(); assignStmt != nil {
         res = assignStmt
-    } else if binopAssign := p.parseBinopAssignStmt(); binopAssign != nil {
+    } /* else if binopAssign := p.parseBinopAssignStmt(); binopAssign != nil {
         res = assignStmt
     } */
 
@@ -262,10 +262,27 @@ func (p *parser) parseReturnStmt() (res *ReturnStmtNode) {
     return
 }
 
+func (p *parser) parseAssignStmt() (res *AssignStmtNode) {
+    rollback := p.curr
+
+    target := p.parseExpr()
+    if target == nil || !p.matchToken(0, lexer.TOKEN_OPERATOR, "=") {
+        p.curr = rollback
+        return
+    }
+
+    p.consume()
+    value := p.parseExpr()
+
+    res = &AssignStmtNode{Target: target, Value: value}
+    res.SetLoc(lexer.Span{target.Loc().Start, value.Loc().End})
+    return
+}
+
 func (p *parser) parseVarDecl() (res *VarDeclNode) {
     t := p.parseTypeReference()
     if t == nil || !p.matchToken(0, lexer.TOKEN_IDENTIFIER, "") {
-        return nil
+        return
     }
     name := NewIdentifier(p.consume())
 
@@ -296,7 +313,7 @@ func (p *parser) parseVarDecl() (res *VarDeclNode) {
 func (p *parser) parseTypeReference() (node ParseNode) {
     if p.matchToken(0, lexer.TOKEN_IDENTIFIER, KEYWORD_FUNC) {
         node = p.parseFunctionType()
-    } else if  p.matchToken(0, lexer.TOKEN_SEPARATOR, "[") {
+    } else if p.matchToken(0, lexer.TOKEN_SEPARATOR, "[") {
         node = p.parseArrayType()
     } else {
         node = p.parseNamedType()
@@ -307,7 +324,7 @@ func (p *parser) parseTypeReference() (node ParseNode) {
 
 func (p *parser) parseArrayType() (res *ArrayTypeNode) {
     if !p.matchToken(0, lexer.TOKEN_SEPARATOR, "[") {
-        return nil
+        return
     }
     start := p.consume()
     p.expect(lexer.TOKEN_SEPARATOR, "]")
@@ -401,8 +418,11 @@ func (p *parser) parseBinaryExpr(expr ParseNode) ParseNode {
             break
         }
 
+        precedence, ok := OPERATOR_PRECEDENCE[p.peek(0).Content]
+        if !ok {
+            break
+        }
         operator := p.consume()
-        precedence := OPERATOR_PRECEDENCE[operator.Content]
 
         right := p.parsePostfixExpr()
         if right == nil {

@@ -172,6 +172,12 @@ type CallStmtNode struct {
     Call ParseNode
 }
 
+type AssignStmtNode struct {
+    baseNode
+    Target ParseNode
+    Value ParseNode
+}
+
 func (p *ParseTree) Print() {
     for _, node := range p.Nodes {
         p.printNode(node, 0)
@@ -296,6 +302,12 @@ func (p *ParseTree) printNode(node ParseNode, pad int) {
     case *ReturnStmtNode:
         padPrint("[Return Stmt Node]", pad)
         padPrint("Return: ", pad + 1)
+        p.printNode(node.Value, pad + 2)
+    case *AssignStmtNode:
+        padPrint("[Assign Stmt Node]", pad)
+        padPrint("Target: ", pad + 1)
+        p.printNode(node.Target, pad + 2)
+        padPrint("Value: ", pad + 1)
         p.printNode(node.Value, pad + 2)
     }
 }

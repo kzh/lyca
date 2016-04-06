@@ -41,10 +41,13 @@ func () > main > ()
 */
 
 func (int a, int b) > sub > () {
-    int i = a - b;
-    return i;
+    int i = 5;
+    i = i + 1;
+    return i - 1;
 }
 
+/*
 func () > create_function > (func (int, int) > (int)) {
     return;
 }
+*/
