@@ -92,6 +92,11 @@ type StringLitNode struct {
     Value string
 }
 
+type FuncLitNode struct {
+    baseNode
+    Function ParseNode
+}
+
 type UnaryExprNode struct {
     baseNode
     Operator string
@@ -309,6 +314,10 @@ func (p *ParseTree) printNode(node ParseNode, pad int) {
         p.printNode(node.Target, pad + 2)
         padPrint("Value: ", pad + 1)
         p.printNode(node.Value, pad + 2)
+    case *FuncLitNode:
+        padPrint("[Func Lit Node]", pad)
+        padPrint("Function: ", pad + 1)
+        p.printNode(node.Function, pad + 2)
     }
 }
 

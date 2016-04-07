@@ -40,14 +40,22 @@ func (int, string) > (int) expr;
 func () > main > ()
 */
 
+/*
 func (int a, int b) > sub > () {
     int i = 5;
     i = i + 1;
     return i - 1;
 }
+*/
 
 /*
 func () > create_function > (func (int, int) > (int)) {
     return;
 }
 */
+
+func () > binop > () {
+    return func (int a, int b) > (int) {
+        return a + b;
+    };
+}

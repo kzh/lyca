@@ -76,7 +76,7 @@ func (p *parser) matchTokens(tokens ...interface{}) bool {
 
 func (p *parser) expect(t lexer.TokenType, content string) *lexer.Token {
     if !p.matchToken(0, t, content) {
-        log.Fatal("Unexpected token ", p.peek(0).Content)
+        log.Fatal("Unexpected token ", p.peek(0).Content, " Expected ", content)
     }
 
     return p.consume()
@@ -105,18 +105,16 @@ func (p *parser) parseBlock() (res *BlockNode) {
     if !p.matchToken(0, lexer.TOKEN_SEPARATOR, "{") {
         return
     }
-    start := p.expect(lexer.TOKEN_SEPARATOR, "{")
 
+    start := p.expect(lexer.TOKEN_SEPARATOR, "{")
     var nodes []ParseNode
     for {
         node := p.parseNode()
         if node == nil {
             break
         }
-
         nodes = append(nodes, node)
     }
-
     end := p.expect(lexer.TOKEN_SEPARATOR, "}")
 
     res = &BlockNode{Nodes: nodes}
@@ -558,6 +556,8 @@ func (p *parser) parseLitExpr() (res ParseNode) {
         res = strLit
     } else if charLit := p.parseCharLit(); charLit != nil {
         res = charLit
+    } else if funcLit := p.parseFuncLit(); funcLit != nil {
+        res = funcLit
     }
 
     return
@@ -583,6 +583,19 @@ func (p *parser) parseVarAccess() (res *VarAccessNode) {
 
     res = &VarAccessNode{Name: NewIdentifier(token)}
     res.SetLoc(token.Location)
+    return
+}
+
+func (p *parser) parseFuncLit() (res *FuncLitNode) {
+    function := p.parseFunc(true)
+    if function == nil {
+        return
+    }
+
+    res = &FuncLitNode{Function: function}
+    res.SetLoc(function.Loc())
+    log.Println("Returning func lit")
+    log.Println(p.curr)
     return
 }
 
