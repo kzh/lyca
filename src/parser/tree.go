@@ -41,6 +41,20 @@ func NewIdentifier(token *lexer.Token) Identifier {
     return Identifier{Loc: token.Location, Value: token.Content}
 }
 
+type TemplateNode struct {
+    baseNode
+    Name Identifier
+    Constructor ParseNode
+    Methods []ParseNode
+    Variables []ParseNode
+}
+
+type ConstructorNode struct {
+    baseNode
+    Parameters []ParseNode
+    Body ParseNode
+}
+
 type ArrayTypeNode struct {
     baseNode
     MemberType ParseNode
@@ -136,10 +150,6 @@ type CallExprNode struct {
 type FuncExprNode struct {
     baseNode
     Function ParseNode
-}
-
-type TemplateNode struct {
-    baseNode
 }
 
 type FuncNode struct {
@@ -318,6 +328,27 @@ func (p *ParseTree) printNode(node ParseNode, pad int) {
         padPrint("[Func Lit Node]", pad)
         padPrint("Function: ", pad + 1)
         p.printNode(node.Function, pad + 2)
+    case *TemplateNode:
+        padPrint("[Template Node]", pad)
+        padPrint("Name: " + node.Name.Value, pad + 1)
+        padPrint("Constructor: ", pad + 1)
+        p.printNode(node.Constructor, pad + 2)
+        padPrint("Variables: ", pad + 1)
+        for _, vars := range node.Variables {
+            p.printNode(vars, pad + 2)
+        }
+        padPrint("Methods: ", pad + 1)
+        for _, methods := range node.Methods {
+            p.printNode(methods, pad + 2)
+        }
+    case *ConstructorNode:
+        padPrint("[Constructor Node]", pad)
+        padPrint("Parameters: ", pad + 1)
+        for _, param := range node.Parameters {
+            p.printNode(param, pad + 2)
+        }
+        padPrint("Body: ", pad + 1)
+        p.printNode(node.Body, pad + 2)
     }
 }
 

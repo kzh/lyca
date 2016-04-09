@@ -9,7 +9,7 @@ import (
 )
 
 func TestParser(t *testing.T) {
-    f, err := os.Open("src/parser_test.lyca");
+    f, err := os.Open("src/basic.lyca");
     if err != nil {
         log.Fatal(err)
     }

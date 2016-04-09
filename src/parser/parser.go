@@ -135,8 +135,61 @@ func (p *parser) parseNode() (res ParseNode) {
     return
 }
 
-func (p *parser) parseTemplateDecl() ParseNode {
-    return nil
+func (p *parser) parseTemplateDecl() (res *TemplateNode) {
+    if !p.matchToken(0, lexer.TOKEN_IDENTIFIER, KEYWORD_TMPL) {
+        return
+    }
+    start := p.consume()
+
+    res = &TemplateNode{}
+    res.Name = NewIdentifier(p.expect(lexer.TOKEN_IDENTIFIER, ""))
+    p.expect(lexer.TOKEN_SEPARATOR, "{")
+    for {
+        if p.matchToken(0, lexer.TOKEN_SEPARATOR, "}") {
+            break
+        }
+
+        if construct := p.parseConstructor(); construct != nil {
+            res.Constructor = construct
+        } else if method := p.parseFuncDecl(); method != nil {
+            res.Methods = append(res.Methods, method)
+        } else if variable := p.parseVarDecl(); variable != nil {
+            res.Variables = append(res.Variables, variable)
+            p.expect(lexer.TOKEN_SEPARATOR, ";")
+        }
+    }
+    end := p.expect(lexer.TOKEN_SEPARATOR, "}")
+    res.SetLoc(lexer.Span{start.Location.Start, end.Location.End})
+    return
+}
+
+func (p *parser) parseConstructor() (res *ConstructorNode) {
+    if !p.matchToken(0, lexer.TOKEN_IDENTIFIER, KEYWORD_CONSTRUCTOR) {
+        return
+    }
+    start := p.consume()
+
+    p.expect(lexer.TOKEN_SEPARATOR, "(")
+    var params []ParseNode
+    for {
+        if p.matchToken(0, lexer.TOKEN_SEPARATOR, ")") {
+            break
+        }
+
+        decl := p.parseVarDecl()
+        params = append(params, decl)
+
+        if !p.matchToken(0, lexer.TOKEN_SEPARATOR, ",") {
+            break
+        }
+        p.consume()
+    }
+    p.expect(lexer.TOKEN_SEPARATOR, ")")
+    body := p.parseBlock()
+
+    res = &ConstructorNode{Parameters: params, Body: body}
+    res.SetLoc(lexer.Span{start.Location.Start, body.Loc().End})
+    return
 }
 
 func (p *parser) parseFuncDecl() (res *FuncDeclNode) {
