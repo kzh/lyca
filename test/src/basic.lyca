@@ -1,8 +1,8 @@
 tmpl Calculator {
-    []char name;
+    String name;
     func (int, int) > (int) add;
 
-    constructor ([]char name) {
+    constructor (String name) {
         this.name = name;
 
         add = func (int a, int b) > (int) {
@@ -16,7 +16,7 @@ tmpl Calculator {
 }
 
 func () > main > () {
-    Calculator calc = make Calculator();
+    Calculator calc = make Calculator("Kevin");
 
     int sum = calc.add(1, 5);
 }

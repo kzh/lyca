@@ -6,10 +6,11 @@ import (
     "testing"
     "github.com/furryfaust/lyca/src/lexer"
     "github.com/furryfaust/lyca/src/parser"
+    "github.com/furryfaust/lyca/src/codegen"
 )
 
 func TestParser(t *testing.T) {
-    f, err := os.Open("src/basic.lyca");
+    f, err := os.Open("src/test.lyca");
     if err != nil {
         log.Fatal(err)
     }
@@ -18,4 +19,5 @@ func TestParser(t *testing.T) {
     tree := parser.Parse(toks)
     tree.Print()
 
+    codegen.Generate(tree)
 }

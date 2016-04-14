@@ -26,8 +26,6 @@ func Lex(f *File) []*Token {
         lexer.lex()
     }
 
-    lexer.printTokens()
-
     return lexer.Tokens
 }
 

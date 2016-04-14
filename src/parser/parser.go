@@ -15,15 +15,15 @@ var OPERATOR_PRECEDENCE map[string]int = map[string]int{
 }
 
 type parser struct {
-    Tree  *ParseTree
+    Tree  *AST
     tokens []*lexer.Token
 
     curr   int
 }
 
-func Parse(tokens []*lexer.Token) *ParseTree {
+func Parse(tokens []*lexer.Token) *AST {
     p := &parser{
-        Tree: &ParseTree{},
+        Tree: &AST{},
         tokens: tokens,
         curr: 0,
     }
@@ -88,7 +88,7 @@ func (p *parser) parse() {
     }
 }
 
-func (p *parser) parseDecl() (node ParseNode) {
+func (p *parser) parseDecl() (node Node) {
     if tmplNode := p.parseTemplateDecl(); tmplNode != nil {
         node =  tmplNode
     } else if funcNode := p.parseFuncDecl(); funcNode != nil {
@@ -107,7 +107,7 @@ func (p *parser) parseBlock() (res *BlockNode) {
     }
 
     start := p.expect(lexer.TOKEN_SEPARATOR, "{")
-    var nodes []ParseNode
+    var nodes []Node
     for {
         node := p.parseNode()
         if node == nil {
@@ -122,7 +122,7 @@ func (p *parser) parseBlock() (res *BlockNode) {
     return
 }
 
-func (p *parser) parseNode() (res ParseNode) {
+func (p *parser) parseNode() (res Node) {
     if stmt := p.parseStmt(); stmt != nil {
         res = stmt
     } else if varDecl := p.parseVarDecl(); varDecl != nil {
@@ -170,7 +170,7 @@ func (p *parser) parseConstructor() (res *ConstructorNode) {
     start := p.consume()
 
     p.expect(lexer.TOKEN_SEPARATOR, "(")
-    var params []ParseNode
+    var params []Node
     for {
         if p.matchToken(0, lexer.TOKEN_SEPARATOR, ")") {
             break
@@ -224,7 +224,7 @@ func (p *parser) parseFuncSignature(anon bool) (res *FuncSignatureNode) {
     var end *lexer.Token
 
     p.expect(lexer.TOKEN_SEPARATOR, "(")
-    var params []ParseNode
+    var params []Node
     for {
         if p.matchToken(0, lexer.TOKEN_SEPARATOR, ")") {
             break
@@ -264,7 +264,7 @@ rollback:
     return
 }
 
-func (p *parser) parseStmt() (res ParseNode) {
+func (p *parser) parseStmt() (res Node) {
     if returnStmt := p.parseReturnStmt(); returnStmt != nil {
         res = returnStmt
     } else if callStmt := p.parseCallStmt(); callStmt != nil {
@@ -299,7 +299,7 @@ func (p *parser) parseReturnStmt() (res *ReturnStmtNode) {
     token := p.consume()
 
     var (
-        expr ParseNode
+        expr Node
         end  lexer.Position = token.Location.End
     )
 
@@ -337,7 +337,7 @@ func (p *parser) parseVarDecl() (res *VarDeclNode) {
     }
     name := NewIdentifier(p.consume())
 
-    var value ParseNode
+    var value Node
     if p.matchToken(0, lexer.TOKEN_OPERATOR, "=") {
         p.consume()
 
@@ -361,9 +361,9 @@ func (p *parser) parseVarDecl() (res *VarDeclNode) {
     return
 }
 
-func (p *parser) parseTypeReference() (node ParseNode) {
+func (p *parser) parseTypeReference() (node Node) {
     if p.matchToken(0, lexer.TOKEN_IDENTIFIER, KEYWORD_FUNC) {
-        node = p.parseFunctionType()
+        node = p.parseFuncType()
     } else if p.matchToken(0, lexer.TOKEN_SEPARATOR, "[") {
         node = p.parseArrayType()
     } else {
@@ -387,7 +387,7 @@ func (p *parser) parseArrayType() (res *ArrayTypeNode) {
     return
 }
 
-func (p *parser) parseFunctionType() (res *FunctionTypeNode) {
+func (p *parser) parseFuncType() (res *FuncTypeNode) {
     start := p.consume()
     p.expect(lexer.TOKEN_SEPARATOR, "(")
     params := p.parseTypes()
@@ -396,18 +396,18 @@ func (p *parser) parseFunctionType() (res *FunctionTypeNode) {
     p.expect(lexer.TOKEN_OPERATOR, ">")
 
     p.expect(lexer.TOKEN_SEPARATOR, "(")
-    var ret ParseNode
+    var ret Node
     if !p.matchToken(0, lexer.TOKEN_SEPARATOR, ")") {
         ret = p.parseTypeReference()
     }
     end := p.expect(lexer.TOKEN_SEPARATOR, ")")
 
-    res = &FunctionTypeNode{Parameters: params, Return: ret}
+    res = &FuncTypeNode{Parameters: params, Return: ret}
     res.SetLoc(lexer.Span{start.Location.Start, end.Location.End})
     return
 }
 
-func (p *parser) parseTypes() (types []ParseNode) {
+func (p *parser) parseTypes() (types []Node) {
     for {
         if p.matchToken(0, lexer.TOKEN_SEPARATOR, ")") {
             break
@@ -436,7 +436,7 @@ func (p *parser) parseNamedType() (res *NamedTypeNode) {
     return
 }
 
-func (p *parser) parseExpr() (res ParseNode) {
+func (p *parser) parseExpr() (res Node) {
     if res = p.parsePostfixExpr(); res == nil {
         return
     }
@@ -458,11 +458,11 @@ func (p *parser) parseExpr() (res ParseNode) {
 ((1 + (2 * 3)) + 4) / 5
 ((1 + (2 * 3)) + (4 / 5))
 */
-func (p *parser) parseBinaryExpr(expr ParseNode) ParseNode {
+func (p *parser) parseBinaryExpr(expr Node) Node {
     if !p.matchToken(0, lexer.TOKEN_OPERATOR, "") {
         return nil
     }
-    rollback := p.curr
+//    rollback := p.curr
 
     for {
         if !p.matchToken(0, lexer.TOKEN_OPERATOR, "") {
@@ -477,14 +477,14 @@ func (p *parser) parseBinaryExpr(expr ParseNode) ParseNode {
 
         right := p.parsePostfixExpr()
         if right == nil {
-            goto rollback
+//            goto rollback
         }
 
         if p.matchToken(0, lexer.TOKEN_OPERATOR, "") {
             next := OPERATOR_PRECEDENCE[p.peek(0).Content]
             if next > precedence {
                 if right = p.parseBinaryExpr(right); right == nil {
-                    goto rollback
+//                    goto rollback
                 }
             }
         }
@@ -498,12 +498,14 @@ func (p *parser) parseBinaryExpr(expr ParseNode) ParseNode {
     }
     return expr
 
+/*
 rollback:
     p.curr = rollback
     return nil
+*/
 }
 
-func (p *parser) parsePostfixExpr() (res ParseNode) {
+func (p *parser) parsePostfixExpr() (res Node) {
     res = p.parsePrimaryExpr()
     if res == nil {
         return
@@ -524,7 +526,7 @@ func (p *parser) parsePostfixExpr() (res ParseNode) {
     return
 }
 
-func (p *parser) parseObjectAccess(obj ParseNode) (res *ObjectAccessNode) {
+func (p *parser) parseObjectAccess(obj Node) (res *ObjectAccessNode) {
     p.consume()
     member := p.expect(lexer.TOKEN_IDENTIFIER, "")
 
@@ -533,7 +535,7 @@ func (p *parser) parseObjectAccess(obj ParseNode) (res *ObjectAccessNode) {
     return
 }
 
-func (p *parser) parseArrayAccess(arr ParseNode) (res *ArrayAccessNode) {
+func (p *parser) parseArrayAccess(arr Node) (res *ArrayAccessNode) {
     p.consume()
     index := p.parseExpr()
     end := p.expect(lexer.TOKEN_SEPARATOR, "]")
@@ -543,7 +545,7 @@ func (p *parser) parseArrayAccess(arr ParseNode) (res *ArrayAccessNode) {
     return
 }
 
-func (p *parser) parseCallExpr(fn ParseNode) (res *CallExprNode) {
+func (p *parser) parseCallExpr(fn Node) (res *CallExprNode) {
     p.consume()
 
     args := p.parseArguments()
@@ -554,7 +556,7 @@ func (p *parser) parseCallExpr(fn ParseNode) (res *CallExprNode) {
     return
 }
 
-func (p *parser) parseArguments() (args []ParseNode) {
+func (p *parser) parseArguments() (args []Node) {
     for {
         if p.matchToken(0, lexer.TOKEN_SEPARATOR, ")") {
             break
@@ -571,7 +573,7 @@ func (p *parser) parseArguments() (args []ParseNode) {
     return
 }
 
-func (p *parser) parsePrimaryExpr() (res ParseNode) {
+func (p *parser) parsePrimaryExpr() (res Node) {
     if makeExpr := p.parseMakeExpr(); makeExpr != nil {
         res = makeExpr
     } else if litExpr := p.parseLitExpr(); litExpr != nil {
@@ -600,7 +602,7 @@ func (p *parser) parseMakeExpr() (res *MakeExprNode) {
     return
 }
 
-func (p *parser) parseLitExpr() (res ParseNode) {
+func (p *parser) parseLitExpr() (res Node) {
     if boolLit := p.parseBoolLit(); boolLit != nil {
         res = boolLit
     } else if numLit := p.parseNumLit(); numLit != nil {

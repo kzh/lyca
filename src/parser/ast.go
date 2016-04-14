@@ -6,7 +6,7 @@ import (
     "github.com/furryfaust/lyca/src/lexer"
 )
 
-type ParseNode interface {
+type Node interface {
     Loc() lexer.Span
     SetLoc(lexer.Span)
 }
@@ -23,12 +23,12 @@ func (b *baseNode) SetLoc(location lexer.Span) {
     b.location = location;
 }
 
-type ParseTree struct {
+type AST struct {
     baseNode
-    Nodes []ParseNode
+    Nodes []Node
 }
 
-func (p *ParseTree) AddNode(node ParseNode) {
+func (p *AST) AddNode(node Node) {
     p.Nodes = append(p.Nodes, node)
 }
 
@@ -44,26 +44,26 @@ func NewIdentifier(token *lexer.Token) Identifier {
 type TemplateNode struct {
     baseNode
     Name Identifier
-    Constructor ParseNode
-    Methods []ParseNode
-    Variables []ParseNode
+    Constructor Node
+    Methods []Node
+    Variables []Node
 }
 
 type ConstructorNode struct {
     baseNode
-    Parameters []ParseNode
-    Body ParseNode
+    Parameters []Node
+    Body Node
 }
 
 type ArrayTypeNode struct {
     baseNode
-    MemberType ParseNode
+    MemberType Node
 }
 
-type FunctionTypeNode struct {
+type FuncTypeNode struct {
     baseNode
-    Parameters []ParseNode
-    Return ParseNode
+    Parameters []Node
+    Return Node
 }
 
 type NamedTypeNode struct {
@@ -74,14 +74,14 @@ type NamedTypeNode struct {
 type VarDeclNode struct {
     baseNode
     Name Identifier
-    Type ParseNode
-    Value ParseNode
+    Type Node
+    Value Node
 }
 
 type MakeExprNode struct {
     baseNode
     Template Identifier
-    Arguments []ParseNode
+    Arguments []Node
 }
 
 type BoolLitNode struct {
@@ -108,19 +108,19 @@ type StringLitNode struct {
 
 type FuncLitNode struct {
     baseNode
-    Function ParseNode
+    Function Node
 }
 
 type UnaryExprNode struct {
     baseNode
     Operator string
-    Value ParseNode
+    Value Node
 }
 
 type BinaryExprNode struct {
     baseNode
-    Left ParseNode
-    Right ParseNode
+    Left Node
+    Right Node
     Operator Identifier
 }
 
@@ -131,75 +131,75 @@ type VarAccessNode struct {
 
 type ObjectAccessNode struct {
     baseNode
-    Object ParseNode
+    Object Node
     Member Identifier
 }
 
 type ArrayAccessNode struct {
     baseNode
-    Array ParseNode
-    Index ParseNode
+    Array Node
+    Index Node
 }
 
 type CallExprNode struct {
     baseNode
-    Function ParseNode
-    Arguments []ParseNode
+    Function Node
+    Arguments []Node
 }
 
 type FuncExprNode struct {
     baseNode
-    Function ParseNode
+    Function Node
 }
 
 type FuncNode struct {
     baseNode
     Anon bool
-    Signature ParseNode
-    Body ParseNode
+    Signature Node
+    Body Node
 }
 
 type FuncSignatureNode struct {
     baseNode
     Name Identifier
-    Parameters []ParseNode
-    Return ParseNode
+    Parameters []Node
+    Return Node
 }
 
 type FuncDeclNode struct {
     baseNode
-    Function ParseNode
-    Body ParseNode
+    Function Node
+    Body Node
 }
 
 type BlockNode struct {
     baseNode
-    Nodes []ParseNode
+    Nodes []Node
 }
 
 type ReturnStmtNode struct {
     baseNode
-    Value ParseNode
+    Value Node
 }
 
 type CallStmtNode struct {
     baseNode
-    Call ParseNode
+    Call Node
 }
 
 type AssignStmtNode struct {
     baseNode
-    Target ParseNode
-    Value ParseNode
+    Target Node
+    Value Node
 }
 
-func (p *ParseTree) Print() {
+func (p *AST) Print() {
     for _, node := range p.Nodes {
         p.printNode(node, 0)
     }
 }
 
-func (p *ParseTree) printNode(node ParseNode, pad int) {
+func (p *AST) printNode(node Node, pad int) {
     if node == nil {
         return
     }
@@ -214,8 +214,8 @@ func (p *ParseTree) printNode(node ParseNode, pad int) {
             padPrint("Value: ", pad + 1)
             p.printNode(node.Value, pad + 2)
         }
-    case *FunctionTypeNode:
-        padPrint("[Function Type Node]", pad)
+    case *FuncTypeNode:
+        padPrint("[Func Type Node]", pad)
         padPrint("Parameters: ", pad + 1)
         for _, param := range node.Parameters {
             p.printNode(param, pad + 2)
