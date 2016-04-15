@@ -44,15 +44,15 @@ func NewIdentifier(token *lexer.Token) Identifier {
 type TemplateNode struct {
     baseNode
     Name Identifier
-    Constructor Node
-    Methods []Node
-    Variables []Node
+    Constructor *ConstructorNode
+    Methods []*FuncDeclNode
+    Variables []*VarDeclNode
 }
 
 type ConstructorNode struct {
     baseNode
-    Parameters []Node
-    Body Node
+    Parameters []*VarDeclNode
+    Body *BlockNode
 }
 
 type ArrayTypeNode struct {
@@ -155,21 +155,21 @@ type FuncExprNode struct {
 type FuncNode struct {
     baseNode
     Anon bool
-    Signature Node
-    Body Node
+    Signature *FuncSignatureNode
+    Body *BlockNode
 }
 
 type FuncSignatureNode struct {
     baseNode
     Name Identifier
-    Parameters []Node
+    Parameters []*VarDeclNode
     Return Node
 }
 
 type FuncDeclNode struct {
     baseNode
-    Function Node
-    Body Node
+    Function *FuncNode
+    Body *BlockNode
 }
 
 type BlockNode struct {

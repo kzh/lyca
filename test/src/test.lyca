@@ -1,5 +1,16 @@
 func (int a) > main > (int) {
 }
 
-func (float b) > turn > (float) {
+tmpl Animal {
+    int a;
+
+    constructor (int a) {
+    }
+
+    func () > greet > () {
+    }
+
+    func () > type > () {
+    }
+
 }

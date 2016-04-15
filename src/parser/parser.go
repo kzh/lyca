@@ -170,7 +170,7 @@ func (p *parser) parseConstructor() (res *ConstructorNode) {
     start := p.consume()
 
     p.expect(lexer.TOKEN_SEPARATOR, "(")
-    var params []Node
+    var params []*VarDeclNode
     for {
         if p.matchToken(0, lexer.TOKEN_SEPARATOR, ")") {
             break
@@ -224,7 +224,7 @@ func (p *parser) parseFuncSignature(anon bool) (res *FuncSignatureNode) {
     var end *lexer.Token
 
     p.expect(lexer.TOKEN_SEPARATOR, "(")
-    var params []Node
+    var params []*VarDeclNode
     for {
         if p.matchToken(0, lexer.TOKEN_SEPARATOR, ")") {
             break
