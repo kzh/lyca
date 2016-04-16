@@ -23,6 +23,11 @@ func (s *Scope) GetValue(name string) llvm.Value {
     return llvm.Value{}
 }
 
+func (s *Scope) AlreadyDeclared(name string) bool {
+    _, ok := s.variables[name]
+    return ok
+}
+
 func (s *Scope) AddValue(name string, val llvm.Value) {
     s.variables[name] = val
 }

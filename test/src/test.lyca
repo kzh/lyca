@@ -1,8 +1,8 @@
-func (int a) > main > (int) {
+func () > main > () {
 }
 
 tmpl Animal {
-    int a;
+    Animal a;
 
     constructor (int a) {
     }
@@ -12,5 +12,8 @@ tmpl Animal {
 
     func () > type > () {
     }
+}
 
+func () > getNumber > (int) {
+    return 5 + 5;
 }

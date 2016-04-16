@@ -7,10 +7,6 @@ import (
     "github.com/furryfaust/lyca/src/parser"
 )
 
-var PRIMITIVE_TYPES map[string]llvm.Type = map[string]llvm.Type {
-    "int": llvm.Int32Type(), "char": llvm.Int1Type(), "float": llvm.FloatType(),
-}
-
 type Template struct {
     Type llvm.Type
     Variables map[string]int
@@ -40,6 +36,7 @@ func Generate(tree *parser.AST) {
         functions: map[string]llvm.BasicBlock{},
     }
     gen.declareTopLevelNodes()
+    gen.generateTopLevelNodes()
 
     if ok := llvm.VerifyModule(gen.module, llvm.ReturnStatusAction); ok != nil {
         log.Println(ok.Error())
@@ -78,7 +75,10 @@ func (c *Codegen) declareFunc(n *parser.FuncDeclNode, obj llvm.Type) {
 }
 
 func (c *Codegen) declareTemplate(n *parser.TemplateNode) {
-    c.templates[n.Name.Value] = &Template{Variables: map[string]int{}}
+    c.templates[n.Name.Value] = &Template{
+        Type: llvm.GlobalContext().StructCreateNamed(n.Name.Value),
+        Variables: map[string]int{},
+    }
 
     var vars []llvm.Type
     for i, v := range n.Variables {
@@ -86,8 +86,8 @@ func (c *Codegen) declareTemplate(n *parser.TemplateNode) {
         c.templates[n.Name.Value].Variables[v.Name.Value] = i
     }
 
-    tmpl := llvm.StructType(vars, false)
-    c.templates[n.Name.Value].Type = tmpl
+    c.templates[n.Name.Value].Type.StructSetBody(vars, false)
+    pointer := llvm.PointerType(c.templates[n.Name.Value].Type, 0)
 
     if n.Constructor != nil {
         f := &parser.FuncDeclNode{
@@ -98,70 +98,125 @@ func (c *Codegen) declareTemplate(n *parser.TemplateNode) {
                 },
             },
         }
-        c.declareFunc(f, tmpl)
+        c.declareFunc(f, pointer)
     }
 
     for _, meth := range n.Methods {
         name := "-" + n.Name.Value + "-" + meth.Function.Signature.Name.Value
         meth.Function.Signature.Name = parser.Identifier{Value: name}
-        c.declareFunc(meth, tmpl)
+        c.declareFunc(meth, pointer)
     }
 }
 
 func (c *Codegen) generateTopLevelNodes() {
-    /*
     for _, node := range c.tree.Nodes {
         switch n := node.(type) {
         case *parser.TemplateNode:
         case *parser.FuncDeclNode:
+            c.generateFuncDecl(n)
         case *parser.VarDeclNode:
+//            c.generateVarDecl(n, true)
         }
     }
-    */
+}
+
+func (c *Codegen) generateFuncDecl(node *parser.FuncDeclNode) {
+    block := c.functions[node.Function.Signature.Name.Value]
+    c.builder.SetInsertPoint(block, block.FirstInstruction())
+
+    var ret bool
+    for _, n := range node.Function.Body.Nodes {
+        switch t := n.(type) {
+            /*
+            case *parser.VarDeclNode:
+                c.generateVarDecl(t)
+            */
+            case *parser.ReturnStmtNode:
+                ret = true
+                c.generateReturn(t)
+        }
+    }
+
+    if !ret {
+        c.builder.CreateRetVoid()
+    }
 }
 
 func (c *Codegen) generateTemplateDecl(node *parser.TemplateNode) {
 
 }
 
-func (c *Codegen) generateVarDecl(node *parser.VarDeclNode, top bool) {
-    /*
-    t := c.getType(node.Type)
-    name := node.Name.Value
-    */
+func (c *Codegen) generateReturn(node *parser.ReturnStmtNode) {
+    ret := c.generateExpression(node.Value)
+
+    c.builder.CreateRet(ret)
 }
 
 /*
-func (c *Codegen) generateExpression(node parser.Node) llvm.Value {
+func (c *Codegen) generateVarDecl(node *parser.VarDeclNode, top bool) {
+    t := c.getLLVMType(node.Type)
+    name := node.Name.Value
+    if c.scope.AlreadyDeclared(name) {
+        // Error name has already been declared
+    }
+    alloc := builder.CreateAlloca(t, name)
+    c.scope.AddValue(t, alloc)
+
+    var val llvm.Value
+    if node.Value == nil {
+        val = c.getLLVMDefaultValue(node.Type)
+    } else {
+        val = c.generateExpression(node.Value)
+    }
 }
 */
 
-func (c *Codegen) getLLVMFuncType(ret parser.Node, params []*parser.VarDeclNode, obj llvm.Type) llvm.Type {
-    p := make([]llvm.Type, 0)
-    if obj != llvm.VoidType() {
-        p = append(p, obj)
-    }
-
-    for _, v := range params {
-        p = append(p, c.getLLVMType(v.Type))
-    }
-
-    return llvm.FunctionType(c.getLLVMType(ret), p, false)
-}
-
-func (c *Codegen) getLLVMType(node parser.Node) llvm.Type {
-    switch t := node.(type) {
-    /*
-    case *FuncTypeNode:
-    case *ArrayTypeNode:
-    */
-    case *parser.NamedTypeNode:
-        if prim, ok := PRIMITIVE_TYPES[t.Name.Value]; ok {
-            return prim
-        } else if t, ok := c.templates[t.Name.Value]; ok {
-            return t.Type
+func (c *Codegen) generateExpression(node parser.Node) llvm.Value {
+    switch n := node.(type) {
+    case *parser.BinaryExprNode:
+        return c.generateBinaryExpression(n)
+    case *parser.NumLitNode:
+        if n.IsFloat {
+            return llvm.ConstFloat(PRIMITIVE_TYPES["float"], n.FloatValue)
+        } else {
+            return llvm.ConstInt(PRIMITIVE_TYPES["int"], uint64(n.IntValue), false)
         }
     }
 
-    return llvm.VoidType()
+    return llvm.Value{}
+}
+
+func (c *Codegen) generateBinaryExpression(node *parser.BinaryExprNode) llvm.Value {
+    left := c.generateExpression(node.Left)
+    right := c.generateExpression(node.Right)
+
+    t := c.getLLVMType(node)
+    switch node.Operator.Value {
+    case "+":
+        if t == PRIMITIVE_TYPES["float"] {
+            return c.builder.CreateFAdd(left, right, "")
+        } else if t == PRIMITIVE_TYPES["int"] {
+            return c.builder.CreateAdd(left, right, "")
+        }
+    case "-":
+        if t == PRIMITIVE_TYPES["float"] {
+            return c.builder.CreateFSub(left, right, "")
+        } else if t == PRIMITIVE_TYPES["int"] {
+            return c.builder.CreateSub(left, right, "")
+        }
+    case "*":
+        if t == PRIMITIVE_TYPES["float"] {
+            return c.builder.CreateFMul(left, right, "")
+        } else if t == PRIMITIVE_TYPES["int"] {
+            return c.builder.CreateMul(left, right, "")
+        }
+    case "/":
+        if t == PRIMITIVE_TYPES["float"] {
+            return c.builder.CreateFDiv(left, right, "")
+        } else if t == PRIMITIVE_TYPES["int"] {
+            return c.builder.CreateSDiv(left, right, "")
+        }
+    }
+
+    return llvm.Value{}
 }

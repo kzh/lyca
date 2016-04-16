@@ -169,7 +169,6 @@ type FuncSignatureNode struct {
 type FuncDeclNode struct {
     baseNode
     Function *FuncNode
-    Body *BlockNode
 }
 
 type BlockNode struct {
