@@ -23,7 +23,7 @@ func (s *Scope) GetValue(name string) llvm.Value {
     return llvm.Value{}
 }
 
-func (s *Scope) AlreadyDeclared(name string) bool {
+func (s *Scope) Declared(name string) bool {
     _, ok := s.variables[name]
     return ok
 }
@@ -33,7 +33,7 @@ func (s *Scope) AddValue(name string, val llvm.Value) {
 }
 
 func (s *Scope) AddScope() *Scope {
-    scope := &Scope{}
+    scope := &Scope{variables: map[string]llvm.Value{}}
     scope.Outer = s
     s.Children = append(s.Children, scope)
 

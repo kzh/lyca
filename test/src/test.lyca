@@ -1,6 +1,11 @@
-func () > main > () {
+func () > main > (int) {
+    int i = 5;
+    int p = 17; 
+    int j = i + p;
+    return j;
 }
 
+/*
 tmpl Animal {
     Animal a;
 
@@ -17,3 +22,4 @@ tmpl Animal {
 func () > getNumber > (int) {
     return 5 + 5;
 }
+*/

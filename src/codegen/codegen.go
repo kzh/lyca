@@ -27,7 +27,7 @@ type Codegen struct {
 func Generate(tree *parser.AST) {
     gen := &Codegen{
         tree: tree,
-        scope: &Scope{},
+        scope: &Scope{variables: map[string]llvm.Value{}},
 
         module: llvm.NewModule("main"),
         builder: llvm.NewBuilder(),
@@ -42,6 +42,14 @@ func Generate(tree *parser.AST) {
         log.Println(ok.Error())
     }
     gen.module.Dump()
+
+    engine, err := llvm.NewExecutionEngine(gen.module)
+    if err != nil {
+        log.Println(err.Error())
+    }
+
+    funcResult := engine.RunFunction(gen.module.NamedFunction("main"), []llvm.GenericValue{})
+    log.Println("Output:", funcResult.Int(false))
 }
 
 func (c *Codegen) enterScope() {
@@ -121,16 +129,15 @@ func (c *Codegen) generateTopLevelNodes() {
 }
 
 func (c *Codegen) generateFuncDecl(node *parser.FuncDeclNode) {
+    c.enterScope()
     block := c.functions[node.Function.Signature.Name.Value]
     c.builder.SetInsertPoint(block, block.FirstInstruction())
 
     var ret bool
     for _, n := range node.Function.Body.Nodes {
         switch t := n.(type) {
-            /*
             case *parser.VarDeclNode:
-                c.generateVarDecl(t)
-            */
+                c.generateVarDecl(t, false)
             case *parser.ReturnStmtNode:
                 ret = true
                 c.generateReturn(t)
@@ -140,6 +147,7 @@ func (c *Codegen) generateFuncDecl(node *parser.FuncDeclNode) {
     if !ret {
         c.builder.CreateRetVoid()
     }
+    c.exitScope()
 }
 
 func (c *Codegen) generateTemplateDecl(node *parser.TemplateNode) {
@@ -148,19 +156,17 @@ func (c *Codegen) generateTemplateDecl(node *parser.TemplateNode) {
 
 func (c *Codegen) generateReturn(node *parser.ReturnStmtNode) {
     ret := c.generateExpression(node.Value)
-
     c.builder.CreateRet(ret)
 }
 
-/*
 func (c *Codegen) generateVarDecl(node *parser.VarDeclNode, top bool) {
     t := c.getLLVMType(node.Type)
     name := node.Name.Value
-    if c.scope.AlreadyDeclared(name) {
+    if c.scope.Declared(name) {
         // Error name has already been declared
     }
-    alloc := builder.CreateAlloca(t, name)
-    c.scope.AddValue(t, alloc)
+    alloc := c.builder.CreateAlloca(t, name)
+    c.scope.AddValue(name, alloc)
 
     var val llvm.Value
     if node.Value == nil {
@@ -168,8 +174,9 @@ func (c *Codegen) generateVarDecl(node *parser.VarDeclNode, top bool) {
     } else {
         val = c.generateExpression(node.Value)
     }
+
+    c.builder.CreateStore(val, alloc)
 }
-*/
 
 func (c *Codegen) generateExpression(node parser.Node) llvm.Value {
     switch n := node.(type) {
@@ -181,6 +188,10 @@ func (c *Codegen) generateExpression(node parser.Node) llvm.Value {
         } else {
             return llvm.ConstInt(PRIMITIVE_TYPES["int"], uint64(n.IntValue), false)
         }
+    case *parser.VarAccessNode:
+        v := n.Name.Value
+        val := c.builder.CreateLoad(c.scope.GetValue(v), "")
+        return val
     }
 
     return llvm.Value{}
