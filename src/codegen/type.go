@@ -47,8 +47,7 @@ func (c *Codegen) getLLVMType(node parser.Node) llvm.Type {
             return PRIMITIVE_TYPES["int"]
         }
     case *parser.VarAccessNode:
-        val := c.builder.CreateLoad(c.scope.GetValue(t.Name.Value), "")
-        return val.Type()
+        return c.scope.GetType(t.Name.Value)
     }
 
     return llvm.VoidType()

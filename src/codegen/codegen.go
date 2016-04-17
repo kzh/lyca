@@ -27,7 +27,7 @@ type Codegen struct {
 func Generate(tree *parser.AST) {
     gen := &Codegen{
         tree: tree,
-        scope: &Scope{variables: map[string]llvm.Value{}},
+        scope: &Scope{variables: map[string]Variable{}},
 
         module: llvm.NewModule("main"),
         builder: llvm.NewBuilder(),
@@ -166,7 +166,7 @@ func (c *Codegen) generateVarDecl(node *parser.VarDeclNode, top bool) {
         // Error name has already been declared
     }
     alloc := c.builder.CreateAlloca(t, name)
-    c.scope.AddValue(name, alloc)
+    c.scope.AddVariable(t, name, alloc)
 
     var val llvm.Value
     if node.Value == nil {
