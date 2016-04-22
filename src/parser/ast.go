@@ -183,7 +183,7 @@ type ReturnStmtNode struct {
 
 type CallStmtNode struct {
     baseNode
-    Call Node
+    Call *CallExprNode
 }
 
 type AssignStmtNode struct {

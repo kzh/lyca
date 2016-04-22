@@ -1,8 +1,10 @@
 func () > main > (int) {
-    int i = 5;
-    int p = 17; 
-    int j = i + p;
+    int j = add(5, 10);
     return j;
+}
+
+func (int a, int b) > add > (int) {
+    return a + b;
 }
 
 /*
@@ -17,9 +19,5 @@ tmpl Animal {
 
     func () > type > () {
     }
-}
-
-func () > getNumber > (int) {
-    return 5 + 5;
 }
 */

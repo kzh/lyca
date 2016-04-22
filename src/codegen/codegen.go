@@ -22,6 +22,8 @@ type Codegen struct {
 
     templates map[string]*Template
     functions map[string]llvm.BasicBlock
+
+    currFunc string
 }
 
 func Generate(tree *parser.AST) {
@@ -38,10 +40,10 @@ func Generate(tree *parser.AST) {
     gen.declareTopLevelNodes()
     gen.generateTopLevelNodes()
 
+    gen.module.Dump()
     if ok := llvm.VerifyModule(gen.module, llvm.ReturnStatusAction); ok != nil {
         log.Println(ok.Error())
     }
-    gen.module.Dump()
 
     engine, err := llvm.NewExecutionEngine(gen.module)
     if err != nil {
@@ -76,7 +78,12 @@ func (c *Codegen) declareFunc(n *parser.FuncDeclNode, obj llvm.Type) {
     sig := n.Function.Signature
     name := sig.Name.Value
     f := c.getLLVMFuncType(sig.Return, sig.Parameters, obj)
-    llvm.AddFunction(c.module, name, f)
+    llvmf := llvm.AddFunction(c.module, name, f)
+
+    for i, name := range sig.Parameters {
+        llvmf.Param(i).SetName(name.Name.Value)
+    }
+
     block := llvm.AddBasicBlock(c.module.NamedFunction(name),"entry")
 
     c.functions[sig.Name.Value] = block
@@ -116,6 +123,26 @@ func (c *Codegen) declareTemplate(n *parser.TemplateNode) {
     }
 }
 
+func (c *Codegen) getFunction(node parser.Node) (llvm.Value, []llvm.Value) {
+    switch t := node.(type) {
+        case *parser.VarAccessNode:
+            return c.module.NamedFunction(t.Name.Value), []llvm.Value{}
+    }
+
+    return llvm.Value{}, []llvm.Value{}
+}
+
+func (c *Codegen) getCurrParam(name string) llvm.Value {
+    currFunc := c.module.NamedFunction(c.currFunc)
+    for _, param := range currFunc.Params() {
+        if param.Name() == name {
+            return param
+        }
+    }
+
+    return llvm.Value{}
+}
+
 func (c *Codegen) generateTopLevelNodes() {
     for _, node := range c.tree.Nodes {
         switch n := node.(type) {
@@ -130,7 +157,8 @@ func (c *Codegen) generateTopLevelNodes() {
 
 func (c *Codegen) generateFuncDecl(node *parser.FuncDeclNode) {
     c.enterScope()
-    block := c.functions[node.Function.Signature.Name.Value]
+    c.currFunc = node.Function.Signature.Name.Value
+    block := c.functions[c.currFunc]
     c.builder.SetInsertPoint(block, block.FirstInstruction())
 
     var ret bool
@@ -138,6 +166,8 @@ func (c *Codegen) generateFuncDecl(node *parser.FuncDeclNode) {
         switch t := n.(type) {
             case *parser.VarDeclNode:
                 c.generateVarDecl(t, false)
+            case *parser.CallStmtNode:
+                c.generateCall(t.Call)
             case *parser.ReturnStmtNode:
                 ret = true
                 c.generateReturn(t)
@@ -152,6 +182,16 @@ func (c *Codegen) generateFuncDecl(node *parser.FuncDeclNode) {
 
 func (c *Codegen) generateTemplateDecl(node *parser.TemplateNode) {
 
+}
+
+func (c *Codegen) generateCall(node *parser.CallExprNode) llvm.Value {
+    fn, args := c.getFunction(node.Function)
+
+    for _, arg := range node.Arguments {
+        args = append(args, c.generateExpression(arg))
+    }
+
+    return c.builder.CreateCall(fn, args, "")
 }
 
 func (c *Codegen) generateReturn(node *parser.ReturnStmtNode) {
@@ -189,9 +229,15 @@ func (c *Codegen) generateExpression(node parser.Node) llvm.Value {
             return llvm.ConstInt(PRIMITIVE_TYPES["int"], uint64(n.IntValue), false)
         }
     case *parser.VarAccessNode:
-        v := n.Name.Value
-        val := c.builder.CreateLoad(c.scope.GetValue(v), "")
-        return val
+        name := n.Name.Value
+        if v := c.scope.GetValue(name); !v.IsNil() {
+            val := c.builder.CreateLoad(v, "")
+            return val
+        }
+
+        return c.getCurrParam(name)
+    case *parser.CallExprNode:
+        return c.generateCall(n)
     }
 
     return llvm.Value{}
