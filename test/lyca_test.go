@@ -9,7 +9,7 @@ import (
     "github.com/furryfaust/lyca/src/codegen"
 )
 
-func TestParser(t *testing.T) {
+func Test(t *testing.T) {
     f, err := os.Open("src/test.lyca");
     if err != nil {
         log.Fatal(err)

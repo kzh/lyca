@@ -47,11 +47,11 @@ func (c *Codegen) getLLVMType(node parser.Node) llvm.Type {
             return PRIMITIVE_TYPES["int"]
         }
     case *parser.VarAccessNode:
-        if t := c.scope.GetType(t.Name.Value); t != llvm.VoidType() {
+        if param := c.getCurrParam(t.Name.Value); !param.IsNil() {
+            return param.Type()
+        } else if t := c.scope.GetType(t.Name.Value); t != llvm.VoidType() {
             return t
         }
-
-        return c.getCurrParam(t.Name.Value).Type()
     case *parser.CallExprNode:
         return c.getLLVMTypeOfCall(t)
     }

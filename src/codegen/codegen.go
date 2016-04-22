@@ -230,12 +230,12 @@ func (c *Codegen) generateExpression(node parser.Node) llvm.Value {
         }
     case *parser.VarAccessNode:
         name := n.Name.Value
-        if v := c.scope.GetValue(name); !v.IsNil() {
+        if param := c.getCurrParam(name); !param.IsNil() {
+            return param
+        } else if v := c.scope.GetValue(name); !v.IsNil() {
             val := c.builder.CreateLoad(v, "")
             return val
         }
-
-        return c.getCurrParam(name)
     case *parser.CallExprNode:
         return c.generateCall(n)
     }
