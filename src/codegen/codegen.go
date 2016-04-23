@@ -29,7 +29,7 @@ type Codegen struct {
 func Generate(tree *parser.AST) {
     gen := &Codegen{
         tree: tree,
-        scope: &Scope{variables: map[string]Variable{}},
+        scope: &Scope{variables: map[string]llvm.Value{}},
 
         module: llvm.NewModule("main"),
         builder: llvm.NewBuilder(),
@@ -51,7 +51,7 @@ func Generate(tree *parser.AST) {
     }
 
     funcResult := engine.RunFunction(gen.module.NamedFunction("main"), []llvm.GenericValue{})
-    log.Println("Output:", funcResult.Int(false))
+    log.Println("Output:", funcResult.Float(llvm.FloatType()))
 }
 
 func (c *Codegen) enterScope() {
@@ -165,7 +165,7 @@ func (c *Codegen) generateFuncDecl(node *parser.FuncDeclNode) {
     for _, n := range node.Function.Body.Nodes {
         switch t := n.(type) {
             case *parser.VarDeclNode:
-                c.generateVarDecl(t, false)
+                c.generateVarDecl(t)
             case *parser.CallStmtNode:
                 c.generateCall(t.Call)
             case *parser.ReturnStmtNode:
@@ -187,32 +187,35 @@ func (c *Codegen) generateTemplateDecl(node *parser.TemplateNode) {
 func (c *Codegen) generateCall(node *parser.CallExprNode) llvm.Value {
     fn, args := c.getFunction(node.Function)
 
-    for _, arg := range node.Arguments {
-        args = append(args, c.generateExpression(arg))
+    for i, arg := range node.Arguments {
+        expr := c.convert(c.generateExpression(arg), fn.Type().ElementType().ParamTypes()[i])
+        args = append(args, expr)
     }
 
     return c.builder.CreateCall(fn, args, "")
 }
 
 func (c *Codegen) generateReturn(node *parser.ReturnStmtNode) {
-    ret := c.generateExpression(node.Value)
+    t := c.module.NamedFunction(c.currFunc).Type().ElementType().ReturnType()
+
+    ret := c.convert(c.generateExpression(node.Value), t)
     c.builder.CreateRet(ret)
 }
 
-func (c *Codegen) generateVarDecl(node *parser.VarDeclNode, top bool) {
+func (c *Codegen) generateVarDecl(node *parser.VarDeclNode) {
     t := c.getLLVMType(node.Type)
     name := node.Name.Value
     if c.scope.Declared(name) {
         // Error name has already been declared
     }
     alloc := c.builder.CreateAlloca(t, name)
-    c.scope.AddVariable(t, name, alloc)
+    c.scope.AddVariable(name, alloc)
 
     var val llvm.Value
     if node.Value == nil {
         val = c.getLLVMDefaultValue(node.Type)
     } else {
-        val = c.generateExpression(node.Value)
+        val = c.convert(c.generateExpression(node.Value), t)
     }
 
     c.builder.CreateStore(val, alloc)
@@ -246,8 +249,13 @@ func (c *Codegen) generateExpression(node parser.Node) llvm.Value {
 func (c *Codegen) generateBinaryExpression(node *parser.BinaryExprNode) llvm.Value {
     left := c.generateExpression(node.Left)
     right := c.generateExpression(node.Right)
+    if left.Type() == PRIMITIVE_TYPES["float"] && right.Type() == PRIMITIVE_TYPES["int"] {
+        right = c.convert(right, PRIMITIVE_TYPES["float"])
+    } else if left.Type() == PRIMITIVE_TYPES["int"] && right.Type() == PRIMITIVE_TYPES["float"] {
+        left = c.convert(left, PRIMITIVE_TYPES["float"])
+    }
 
-    t := c.getLLVMType(node)
+    t := left.Type()
     switch node.Operator.Value {
     case "+":
         if t == PRIMITIVE_TYPES["float"] {

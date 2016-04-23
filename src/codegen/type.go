@@ -1,6 +1,8 @@
 package codegen
 
 import (
+    "log"
+
     "llvm.org/llvm/bindings/go/llvm"
     "github.com/furryfaust/lyca/src/parser"
 )
@@ -49,7 +51,7 @@ func (c *Codegen) getLLVMType(node parser.Node) llvm.Type {
     case *parser.VarAccessNode:
         if param := c.getCurrParam(t.Name.Value); !param.IsNil() {
             return param.Type()
-        } else if t := c.scope.GetType(t.Name.Value); t != llvm.VoidType() {
+        } else if t := c.scope.GetValue(t.Name.Value).Type(); t != llvm.VoidType() {
             return t
         }
     case *parser.CallExprNode:
@@ -93,3 +95,32 @@ func (c *Codegen) getLLVMDefaultValue(node parser.Node) llvm.Value {
 
     return llvm.Value{}
 }
+
+func (c *Codegen) convert(val llvm.Value, t llvm.Type) llvm.Value {
+    if val.Type() == t {
+        return val
+    }
+    log.Println("not equal")
+
+    switch val.Type() {
+    case PRIMITIVE_TYPES["int"]:
+        if t == PRIMITIVE_TYPES["float"] {
+            return c.builder.CreateSIToFP(val, t, "")
+        }
+    }
+
+    return val
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
