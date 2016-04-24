@@ -1,7 +1,7 @@
 package codegen
 
 import (
-    "log"
+//    "log"
 
     "llvm.org/llvm/bindings/go/llvm"
     "github.com/furryfaust/lyca/src/parser"
@@ -100,7 +100,6 @@ func (c *Codegen) convert(val llvm.Value, t llvm.Type) llvm.Value {
     if val.Type() == t {
         return val
     }
-    log.Println("not equal")
 
     switch val.Type() {
     case PRIMITIVE_TYPES["int"]:

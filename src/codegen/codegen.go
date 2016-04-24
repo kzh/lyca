@@ -40,10 +40,10 @@ func Generate(tree *parser.AST) {
     gen.declareTopLevelNodes()
     gen.generateTopLevelNodes()
 
-    gen.module.Dump()
     if ok := llvm.VerifyModule(gen.module, llvm.ReturnStatusAction); ok != nil {
         log.Println(ok.Error())
     }
+    gen.module.Dump()
 
     engine, err := llvm.NewExecutionEngine(gen.module)
     if err != nil {
@@ -80,8 +80,14 @@ func (c *Codegen) declareFunc(n *parser.FuncDeclNode, obj llvm.Type) {
     f := c.getLLVMFuncType(sig.Return, sig.Parameters, obj)
     llvmf := llvm.AddFunction(c.module, name, f)
 
+    offset := 0
+    if obj != llvm.VoidType() {
+        llvmf.Param(0).SetName("this")
+        offset = 1
+    }
+
     for i, name := range sig.Parameters {
-        llvmf.Param(i).SetName(name.Name.Value)
+        llvmf.Param(i + offset).SetName(name.Name.Value)
     }
 
     block := llvm.AddBasicBlock(c.module.NamedFunction(name),"entry")
@@ -183,7 +189,11 @@ func (c *Codegen) generateFuncDecl(node *parser.FuncDeclNode) {
 }
 
 func (c *Codegen) generateTemplateDecl(node *parser.TemplateNode) {
-
+    /*
+    name := node.Name.Value
+    for _, v := range node.Variables {
+    }
+    */
 }
 
 func (c *Codegen) generateAssign(node *parser.AssignStmtNode) {

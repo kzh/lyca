@@ -1,32 +1,19 @@
-int j = 5;
-
-func () > main > (float) {
-    float sum = add(3, 7);
-    sum = add(sum, j);
-    return sum;
+func () > main > (int) {
+    return 0;
 }
 
-func (float a, float b) > add > (float) {
-    return a + b;
+func (int a, int b) > add > () {
 }
 
-/*
-func (int a, int b) > add > (int) {
-    return a + b;
-}
-*/
-
-/*
 tmpl Animal {
     Animal a;
 
     constructor (int a) {
     }
 
-    func () > greet > () {
+    func (int a) > greet > () {
     }
 
-    func () > type > () {
+    func (int b) > type > () {
     }
 }
-*/
