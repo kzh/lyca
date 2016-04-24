@@ -150,7 +150,7 @@ func (c *Codegen) generateTopLevelNodes() {
         case *parser.FuncDeclNode:
             c.generateFuncDecl(n)
         case *parser.VarDeclNode:
-//            c.generateVarDecl(n, true)
+            c.generateVarDecl(n, true)
         }
     }
 }
@@ -159,13 +159,15 @@ func (c *Codegen) generateFuncDecl(node *parser.FuncDeclNode) {
     c.enterScope()
     c.currFunc = node.Function.Signature.Name.Value
     block := c.functions[c.currFunc]
-    c.builder.SetInsertPoint(block, block.FirstInstruction())
+    c.builder.SetInsertPoint(block, block.LastInstruction())
 
     var ret bool
     for _, n := range node.Function.Body.Nodes {
         switch t := n.(type) {
             case *parser.VarDeclNode:
-                c.generateVarDecl(t)
+                c.generateVarDecl(t, false)
+            case *parser.AssignStmtNode:
+                c.generateAssign(t)
             case *parser.CallStmtNode:
                 c.generateCall(t.Call)
             case *parser.ReturnStmtNode:
@@ -184,6 +186,13 @@ func (c *Codegen) generateTemplateDecl(node *parser.TemplateNode) {
 
 }
 
+func (c *Codegen) generateAssign(node *parser.AssignStmtNode) {
+    access := c.generateAccess(node.Target, false)
+    expr := c.convert(c.generateExpression(node.Value), access.Type().ElementType())
+
+    c.builder.CreateStore(expr, access)
+}
+
 func (c *Codegen) generateCall(node *parser.CallExprNode) llvm.Value {
     fn, args := c.getFunction(node.Function)
 
@@ -195,6 +204,11 @@ func (c *Codegen) generateCall(node *parser.CallExprNode) llvm.Value {
     return c.builder.CreateCall(fn, args, "")
 }
 
+/*
+func (c *Codegen) generateMake(node *parser.MakeExprNode) llvm.Value {
+}
+*/
+
 func (c *Codegen) generateReturn(node *parser.ReturnStmtNode) {
     t := c.module.NamedFunction(c.currFunc).Type().ElementType().ReturnType()
 
@@ -202,23 +216,45 @@ func (c *Codegen) generateReturn(node *parser.ReturnStmtNode) {
     c.builder.CreateRet(ret)
 }
 
-func (c *Codegen) generateVarDecl(node *parser.VarDeclNode) {
+func (c *Codegen) generateVarDecl(node *parser.VarDeclNode, global bool) {
     t := c.getLLVMType(node.Type)
     name := node.Name.Value
     if c.scope.Declared(name) {
         // Error name has already been declared
     }
-    alloc := c.builder.CreateAlloca(t, name)
-    c.scope.AddVariable(name, alloc)
 
-    var val llvm.Value
+    var alloc, val llvm.Value
     if node.Value == nil {
         val = c.getLLVMDefaultValue(node.Type)
     } else {
         val = c.convert(c.generateExpression(node.Value), t)
     }
 
-    c.builder.CreateStore(val, alloc)
+    if !global {
+        alloc = c.builder.CreateAlloca(t, name)
+        c.builder.CreateStore(val, alloc)
+    } else {
+        alloc = llvm.AddGlobal(c.module, t, name)
+        alloc.SetInitializer(val)
+    }
+    c.scope.AddVariable(name, alloc)
+}
+
+func (c *Codegen) generateAccess(node parser.Node, val bool) llvm.Value {
+    switch t := node.(type) {
+    case *parser.VarAccessNode:
+        name := t.Name.Value
+        if param := c.getCurrParam(name); !param.IsNil() {
+            return param
+        } else if v := c.scope.GetValue(name); !v.IsNil() {
+            if val {
+                v = c.builder.CreateLoad(v, "")
+            }
+            return v
+        }
+    }
+
+    return llvm.Value{}
 }
 
 func (c *Codegen) generateExpression(node parser.Node) llvm.Value {
@@ -231,16 +267,14 @@ func (c *Codegen) generateExpression(node parser.Node) llvm.Value {
         } else {
             return llvm.ConstInt(PRIMITIVE_TYPES["int"], uint64(n.IntValue), false)
         }
-    case *parser.VarAccessNode:
-        name := n.Name.Value
-        if param := c.getCurrParam(name); !param.IsNil() {
-            return param
-        } else if v := c.scope.GetValue(name); !v.IsNil() {
-            val := c.builder.CreateLoad(v, "")
-            return val
-        }
+    case *parser.VarAccessNode, *parser.ObjectAccessNode, *parser.ArrayAccessNode:
+        return c.generateAccess(n, true)
     case *parser.CallExprNode:
         return c.generateCall(n)
+    /*
+    case *MakeExprNode:
+        return c.generateMake(n)
+    */
     }
 
     return llvm.Value{}

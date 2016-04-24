@@ -1,9 +1,12 @@
+int j = 5;
+
 func () > main > (float) {
     float sum = add(3, 7);
+    sum = add(sum, j);
     return sum;
 }
 
-func (int a, int b) > add > (int) {
+func (float a, float b) > add > (float) {
     return a + b;
 }
 

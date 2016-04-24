@@ -1,8 +1,8 @@
 tmpl Calculator {
-    String name;
+    string name;
     func (int, int) > (int) add;
 
-    constructor (String name) {
+    constructor (string name) {
         this.name = name;
 
         add = func (int a, int b) > (int) {
