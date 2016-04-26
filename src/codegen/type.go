@@ -11,6 +11,8 @@ var PRIMITIVE_TYPES map[string]llvm.Type = map[string]llvm.Type {
     "int": llvm.Int32Type(), "char": llvm.Int8Type(), "float": llvm.FloatType(), "boolean": llvm.Int1Type(),
 }
 
+var null llvm.Value = llvm.Value{}
+
 func (c *Codegen) getLLVMFuncType(ret parser.Node, params []*parser.VarDeclNode, obj llvm.Type) llvm.Type {
     p := make([]llvm.Type, 0)
     if obj != llvm.VoidType() {
@@ -34,7 +36,7 @@ func (c *Codegen) getLLVMType(node parser.Node) llvm.Type {
         if prim, ok := PRIMITIVE_TYPES[t.Name.Value]; ok {
             return prim
         } else if t, ok := c.templates[t.Name.Value]; ok {
-            return llvm.PointerType(t.Type, 0)
+            return t.Type
         }
     case *parser.BinaryExprNode:
         return c.getLLVMType(t.Left)
@@ -68,32 +70,6 @@ func (c *Codegen) getLLVMTypeOfCall(node *parser.CallExprNode) llvm.Type {
     }
 
     return llvm.VoidType()
-}
-
-func (c *Codegen) getLLVMDefaultValue(node parser.Node) llvm.Value {
-    llvmType := c.getLLVMType(node)
-    switch t := node.(type) {
-    /*
-    case *FuncTypeNode:
-    case *ArrayTypeNode:
-    */
-    case *parser.NamedTypeNode:
-        switch t.Name.Value {
-        case "int", "char", "bool":
-            return llvm.ConstInt(llvmType, 0, false)
-        case "float":
-            return llvm.ConstFloat(llvmType, 0)
-        default:
-            tmpl, ok := c.templates[t.Name.Value]
-            if !ok {
-                //Error undefined template
-            }
-
-            return llvm.ConstNamedStruct(tmpl.Type, []llvm.Value{})
-        }
-    }
-
-    return llvm.Value{}
 }
 
 func (c *Codegen) convert(val llvm.Value, t llvm.Type) llvm.Value {

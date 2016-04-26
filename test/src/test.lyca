@@ -1,19 +1,25 @@
 func () > main > (int) {
-    return 0;
+    Animal a = make Animal(5);
+
+    return a.id; 
 }
 
-func (int a, int b) > add > () {
+func (int a, int b) > add > (int) {
+    return a + b;
 }
 
 tmpl Animal {
-    Animal a;
+    int id;
 
-    constructor (int a) {
+    constructor (int id) {
+        this.id = id;
     }
 
-    func (int a) > greet > () {
+    func () > id > (int) {
+        return this.id;
     }
 
-    func (int b) > type > () {
+    func (int i) > changeID > () {
+        this.id = i;
     }
 }
