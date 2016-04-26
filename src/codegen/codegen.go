@@ -130,8 +130,13 @@ func (c *Codegen) declareTemplate(n *parser.TemplateNode) {
 
 func (c *Codegen) getFunction(node parser.Node) (llvm.Value, []llvm.Value) {
     switch t := node.(type) {
-        case *parser.VarAccessNode:
-            return c.module.NamedFunction(t.Name.Value), []llvm.Value{}
+    case *parser.VarAccessNode:
+        return c.module.NamedFunction(t.Name.Value), []llvm.Value{}
+    case *parser.ObjectAccessNode:
+        tmpl := c.getLLVMType(t.Object).ElementType().StructName()
+        obj := c.generateAccess(t.Object, false)
+
+        return c.module.NamedFunction("-" + tmpl + "-" + t.Member.Value), []llvm.Value{obj}
     }
 
     return llvm.Value{}, []llvm.Value{}
@@ -201,7 +206,9 @@ func (c *Codegen) generateTemplateDecl(node *parser.TemplateNode) {
         c.generateFunc(f)
     }
 
-
+    for _, meth := range node.Methods {
+        c.generateFunc(meth.Function)
+    }
 }
 
 func (c *Codegen) generateAssign(node *parser.AssignStmtNode) {

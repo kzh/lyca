@@ -1,7 +1,8 @@
 func () > main > (int) {
     Animal a = make Animal(5);
+    a.changeID(15);
 
-    return a.id; 
+    return a.id(); 
 }
 
 func (int a, int b) > add > (int) {

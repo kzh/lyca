@@ -56,6 +56,8 @@ func (c *Codegen) getLLVMType(node parser.Node) llvm.Type {
         } else if t := c.scope.GetValue(t.Name.Value).Type(); t != llvm.VoidType() {
             return t
         }
+    case *parser.ObjectAccessNode:
+        return c.getLLVMType(t.Object)
     case *parser.CallExprNode:
         return c.getLLVMTypeOfCall(t)
     }
