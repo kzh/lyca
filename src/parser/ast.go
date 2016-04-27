@@ -341,6 +341,9 @@ func (p *AST) printNode(node Node, pad int) {
             p.printNode(methods, pad + 2)
         }
     case *ConstructorNode:
+        if node == nil {
+            return
+        }
         padPrint("[Constructor Node]", pad)
         padPrint("Parameters: ", pad + 1)
         for _, param := range node.Parameters {

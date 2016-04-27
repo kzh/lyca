@@ -11,6 +11,7 @@ type Template struct {
     Type llvm.Type
     Variables map[string]int
     Values []*parser.VarDeclNode
+    HasConstructor bool
 }
 
 type Codegen struct {
@@ -66,12 +67,26 @@ func (c *Codegen) exitScope() {
 func (c *Codegen) declareTopLevelNodes() {
     for _, node := range c.tree.Nodes {
         switch n := node.(type) {
+        case *parser.TemplateNode:
+            c.presetTemplate(n)
+        }
+    }
+    for _, node := range c.tree.Nodes {
+        switch n := node.(type) {
         case *parser.FuncDeclNode:
             c.declareFunc(n.Function, llvm.VoidType())
         case *parser.TemplateNode:
             c.declareTemplate(n)
         }
     }
+}
+
+func (c *Codegen) presetTemplate(n *parser.TemplateNode) {
+    c.templates[n.Name.Value] = &Template{
+        Type: llvm.GlobalContext().StructCreateNamed(n.Name.Value),
+        Variables: map[string]int{},
+    }
+    c.templates[n.Name.Value].Values = n.Variables
 }
 
 func (c *Codegen) declareFunc(n *parser.FuncNode, obj llvm.Type) {
@@ -96,20 +111,15 @@ func (c *Codegen) declareFunc(n *parser.FuncNode, obj llvm.Type) {
 }
 
 func (c *Codegen) declareTemplate(n *parser.TemplateNode) {
-    c.templates[n.Name.Value] = &Template{
-        Type: llvm.GlobalContext().StructCreateNamed(n.Name.Value),
-        Variables: map[string]int{},
-    }
-    c.templates[n.Name.Value].Values = n.Variables
-
+    name := n.Name.Value
     var vars []llvm.Type
     for i, v := range n.Variables {
         vars = append(vars, c.getLLVMType(v.Type))
-        c.templates[n.Name.Value].Variables[v.Name.Value] = i
+        c.templates[name].Variables[v.Name.Value] = i
     }
 
-    c.templates[n.Name.Value].Type.StructSetBody(vars, false)
-    pointer := llvm.PointerType(c.templates[n.Name.Value].Type, 0)
+    c.templates[name].Type.StructSetBody(vars, false)
+    pointer := llvm.PointerType(c.templates[name].Type, 0)
 
     if n.Constructor != nil {
        f := &parser.FuncNode{
@@ -119,6 +129,7 @@ func (c *Codegen) declareTemplate(n *parser.TemplateNode) {
             },
         }
         c.declareFunc(f, pointer)
+        c.templates[name].HasConstructor = true
     }
 
     for _, meth := range n.Methods {
@@ -237,11 +248,13 @@ func (c *Codegen) generateMake(node *parser.MakeExprNode) llvm.Value {
     t := c.templates[node.Template.Value]
     alloc := c.builder.CreateAlloca(t.Type, "")
 
-    call := &parser.CallExprNode{
-        Function: &parser.VarAccessNode{Name: parser.Identifier{Value: "-" + node.Template.Value}},
-        Arguments: node.Arguments,
+    if t.HasConstructor {
+        call := &parser.CallExprNode{
+            Function: &parser.VarAccessNode{Name: parser.Identifier{Value: "-" + node.Template.Value}},
+            Arguments: node.Arguments,
+        }
+        c.generateCall(call, alloc)
     }
-    c.generateCall(call, alloc)
 
     return alloc
 }
@@ -262,23 +275,20 @@ func (c *Codegen) generateVarDecl(node *parser.VarDeclNode, global bool) {
 
     var alloc, val llvm.Value
     if node.Value == nil {
-        val = llvm.Undef(c.getLLVMType(node.Type))
+        val = llvm.Undef(t)
     } else {
         val = c.convert(c.generateExpression(node.Value), t)
     }
 
-    if val.IsAAllocaInst().IsNil() {
-        if !global {
-            alloc = c.builder.CreateAlloca(t, name)
-            c.builder.CreateStore(val, alloc)
-        } else {
-            alloc = llvm.AddGlobal(c.module, t, name)
-            alloc.SetInitializer(val)
-        }
-        c.scope.AddVariable(name, alloc)
+    if !global {
+        alloc = c.builder.CreateAlloca(t, name)
+        c.builder.CreateStore(val, alloc)
     } else {
-        c.scope.AddVariable(name, val)
+        alloc = llvm.AddGlobal(c.module, t, name)
+        alloc.SetInitializer(val)
     }
+
+    c.scope.AddVariable(name, alloc)
 }
 
 func (c *Codegen) generateAccess(node parser.Node, val bool) (v llvm.Value) {
@@ -291,7 +301,7 @@ func (c *Codegen) generateAccess(node parser.Node, val bool) (v llvm.Value) {
             v = c.scope.GetValue(name);
         }
     case *parser.ObjectAccessNode:
-        obj := c.generateAccess(t.Object, false)
+        obj := c.generateAccess(t.Object, true)
         index := c.templates[obj.Type().ElementType().StructName()].Variables[t.Member.Value]
         v = c.builder.CreateStructGEP(obj, index, "")
     }

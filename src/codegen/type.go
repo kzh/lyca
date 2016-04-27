@@ -36,7 +36,7 @@ func (c *Codegen) getLLVMType(node parser.Node) llvm.Type {
         if prim, ok := PRIMITIVE_TYPES[t.Name.Value]; ok {
             return prim
         } else if t, ok := c.templates[t.Name.Value]; ok {
-            return t.Type
+            return llvm.PointerType(t.Type, 0)
         }
     case *parser.BinaryExprNode:
         return c.getLLVMType(t.Left)
