@@ -38,17 +38,18 @@ func Generate(tree *parser.AST) {
         templates: map[string]*Template{},
         functions: map[string]llvm.BasicBlock{},
     }
+
+    engine, err := llvm.NewExecutionEngine(gen.module)
+    if err != nil {
+        log.Println(err.Error())
+    }
+
     gen.declareTopLevelNodes()
     gen.generateTopLevelNodes()
 
     gen.module.Dump()
     if ok := llvm.VerifyModule(gen.module, llvm.ReturnStatusAction); ok != nil {
         log.Println(ok.Error())
-    }
-
-    engine, err := llvm.NewExecutionEngine(gen.module)
-    if err != nil {
-        log.Println(err.Error())
     }
 
     funcResult := engine.RunFunction(gen.module.NamedFunction("main"), []llvm.GenericValue{})
@@ -71,6 +72,7 @@ func (c *Codegen) declareTopLevelNodes() {
             c.presetTemplate(n)
         }
     }
+
     for _, node := range c.tree.Nodes {
         switch n := node.(type) {
         case *parser.FuncDeclNode:
@@ -144,13 +146,13 @@ func (c *Codegen) getFunction(node parser.Node) (llvm.Value, []llvm.Value) {
     case *parser.VarAccessNode:
         return c.module.NamedFunction(t.Name.Value), []llvm.Value{}
     case *parser.ObjectAccessNode:
-        tmpl := c.getLLVMType(t.Object).ElementType().StructName()
-        obj := c.generateAccess(t.Object, false)
+        tmpl := c.getLLVMType(t.Object).ElementType().ElementType().StructName()
+        obj := c.generateAccess(t.Object, true)
 
         return c.module.NamedFunction("-" + tmpl + "-" + t.Member.Value), []llvm.Value{obj}
     }
 
-    return llvm.Value{}, []llvm.Value{}
+    return null, []llvm.Value{}
 }
 
 func (c *Codegen) getCurrParam(name string) llvm.Value {
@@ -161,7 +163,7 @@ func (c *Codegen) getCurrParam(name string) llvm.Value {
         }
     }
 
-    return llvm.Value{}
+    return null
 }
 
 func (c *Codegen) generateTopLevelNodes() {
@@ -330,7 +332,7 @@ func (c *Codegen) generateExpression(node parser.Node) llvm.Value {
         return c.generateMake(n)
     }
 
-    return llvm.Value{}
+    return null
 }
 
 func (c *Codegen) generateBinaryExpression(node *parser.BinaryExprNode) llvm.Value {
@@ -370,5 +372,5 @@ func (c *Codegen) generateBinaryExpression(node *parser.BinaryExprNode) llvm.Val
         }
     }
 
-    return llvm.Value{}
+    return null
 }

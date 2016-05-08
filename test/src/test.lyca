@@ -1,9 +1,11 @@
 func () > main > (int) {
     Animal a = make Animal();
-    a.id = 5;
-    return a.id; 
+    int i = a.getId();
+    return i;
 }
 
 tmpl Animal {
-    int id;
+    func () > getId > (int) {
+        return 5;
+    }
 }

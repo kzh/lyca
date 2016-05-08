@@ -168,7 +168,7 @@ func (p *parser) parseConstructor() (res *ConstructorNode) {
         return
     }
     start := p.consume()
-
+    p.expect(lexer.TOKEN_OPERATOR, "<")
     p.expect(lexer.TOKEN_SEPARATOR, "(")
     var params []*VarDeclNode
     for {
