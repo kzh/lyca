@@ -593,6 +593,7 @@ func (p *parser) parseMakeExpr() (res *MakeExprNode) {
     }
     start     := p.consume()
     template  := NewIdentifier(p.expect(lexer.TOKEN_IDENTIFIER, ""))
+    p.expect(lexer.TOKEN_OPERATOR, "<")
     p.expect(lexer.TOKEN_SEPARATOR, "(")
     construct := p.parseArguments()
     end := p.expect(lexer.TOKEN_SEPARATOR, ")")

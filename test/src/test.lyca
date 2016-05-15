@@ -1,11 +1,24 @@
 func () > main > (int) {
-    Animal a = make Animal();
+    Animal a = make Animal(5);
+    a.setId(10);
+    a.id = 5;
+
     int i = a.getId();
     return i;
 }
 
 tmpl Animal {
+    int id;
+
+    constructor < (int id) {
+        this.id = id;
+    }
+
     func () > getId > (int) {
-        return 5;
+        return this.id;
+    }
+
+    func (int id) > setId > () {
+        this.id = id;
     }
 }
