@@ -44,4 +44,7 @@ func Test(t *testing.T) {
     if err != nil {
         log.Fatal(err)
     }
+
+    os.Remove("src/test.ll")
+    os.Remove("src/test.o")
 }
