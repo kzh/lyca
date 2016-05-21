@@ -27,8 +27,8 @@ type Codegen struct {
     currFunc string
 }
 
-func Generate(tree *parser.AST) {
-    gen := &Codegen{
+func Generate(tree *parser.AST) *Codegen {
+    return &Codegen{
         tree: tree,
         scope: &Scope{variables: map[string]llvm.Value{}},
 
@@ -38,22 +38,17 @@ func Generate(tree *parser.AST) {
         templates: map[string]*Template{},
         functions: map[string]llvm.BasicBlock{},
     }
+}
 
-    engine, err := llvm.NewExecutionEngine(gen.module)
-    if err != nil {
-        log.Println(err.Error())
-    }
+func (c *Codegen) Generate() string {
+    c.declareTopLevelNodes()
+    c.generateTopLevelNodes()
 
-    gen.declareTopLevelNodes()
-    gen.generateTopLevelNodes()
-
-    gen.module.Dump()
-    if ok := llvm.VerifyModule(gen.module, llvm.ReturnStatusAction); ok != nil {
+    if ok := llvm.VerifyModule(c.module, llvm.ReturnStatusAction); ok != nil {
         log.Println(ok.Error())
     }
 
-    funcResult := engine.RunFunction(gen.module.NamedFunction("main"), []llvm.GenericValue{})
-    log.Println("Output:", funcResult.Int(false))
+    return c.module.String()
 }
 
 func (c *Codegen) enterScope() {
@@ -226,7 +221,7 @@ func (c *Codegen) generateTemplateDecl(node *parser.TemplateNode) {
 
 func (c *Codegen) generateAssign(node *parser.AssignStmtNode) {
     access := c.generateAccess(node.Target, false)
-    expr := c.convert(c.generateExpression(node.Value), access.Type().ElementType())
+    expr := c.convert(c.generateExpression(node.Value), access.Type())
 
     c.builder.CreateStore(expr, access)
 }
@@ -248,7 +243,7 @@ func (c *Codegen) generateCall(node *parser.CallExprNode, obj llvm.Value) llvm.V
 
 func (c *Codegen) generateMake(node *parser.MakeExprNode) llvm.Value {
     t := c.templates[node.Template.Value]
-    alloc := c.builder.CreateAlloca(t.Type, "")
+    alloc := c.builder.CreateMalloc(t.Type, "")
 
     if t.HasConstructor {
         call := &parser.CallExprNode{
@@ -263,8 +258,8 @@ func (c *Codegen) generateMake(node *parser.MakeExprNode) llvm.Value {
 
 func (c *Codegen) generateReturn(node *parser.ReturnStmtNode) {
     t := c.module.NamedFunction(c.currFunc).Type().ElementType().ReturnType()
-
     ret := c.convert(c.generateExpression(node.Value), t)
+
     c.builder.CreateRet(ret)
 }
 
