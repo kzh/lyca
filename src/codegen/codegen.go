@@ -221,7 +221,7 @@ func (c *Codegen) generateTemplateDecl(node *parser.TemplateNode) {
 
 func (c *Codegen) generateAssign(node *parser.AssignStmtNode) {
     access := c.generateAccess(node.Target, false)
-    expr := c.convert(c.generateExpression(node.Value), access.Type())
+    expr := c.convert(c.generateExpression(node.Value), access.Type().ElementType())
 
     c.builder.CreateStore(expr, access)
 }
@@ -319,6 +319,15 @@ func (c *Codegen) generateExpression(node parser.Node) llvm.Value {
         } else {
             return llvm.ConstInt(PRIMITIVE_TYPES["int"], uint64(n.IntValue), false)
         }
+    case *parser.BoolLitNode:
+        i := 0
+        if n.Value {
+            i = 1
+        }
+
+        return llvm.ConstInt(PRIMITIVE_TYPES["boolean"], uint64(i), false)
+    case *parser.CharLitNode:
+        return llvm.ConstInt(PRIMITIVE_TYPES["char"], uint64(n.Value), false)
     case *parser.VarAccessNode, *parser.ObjectAccessNode, *parser.ArrayAccessNode:
         return c.generateAccess(n, true)
     case *parser.CallExprNode:

@@ -1,0 +1,31 @@
+func () > main > (int) {
+    Object o = getObj();
+
+    return o.id.id;
+}
+
+func () > getObj > (Object) {
+    Object o = make Object < ();
+    o.id.id = 5;
+    return o;
+}
+
+tmpl Id {
+    int id;    
+
+    constructor < () {
+        this.id = 10;
+    }
+}
+
+tmpl Object {
+    Id id;
+
+    constructor < () {
+        this.id = make Id < ();
+    }
+
+    func (int id) > changeId > () {
+        this.id.id = id;
+    }
+}
