@@ -27,7 +27,7 @@ func main() {
     tree := parser.Parse(toks)
     tree.Print()
 
-    gen := codegen.Generate(tree)
+    gen := codegen.Construct(tree)
     ir  := gen.Generate()
     log.Println("\n" + ir)
 

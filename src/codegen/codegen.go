@@ -27,7 +27,7 @@ type Codegen struct {
     currFunc string
 }
 
-func Generate(tree *parser.AST) *Codegen {
+func Construct(tree *parser.AST) *Codegen {
     return &Codegen{
         tree: tree,
         scope: &Scope{variables: map[string]llvm.Value{}},
@@ -41,6 +41,7 @@ func Generate(tree *parser.AST) *Codegen {
 }
 
 func (c *Codegen) Generate() string {
+    c.injectStdLib()
     c.declareTopLevelNodes()
     c.generateTopLevelNodes()
 
@@ -328,6 +329,8 @@ func (c *Codegen) generateExpression(node parser.Node) llvm.Value {
         return llvm.ConstInt(PRIMITIVE_TYPES["boolean"], uint64(i), false)
     case *parser.CharLitNode:
         return llvm.ConstInt(PRIMITIVE_TYPES["char"], uint64(n.Value), false)
+    case *parser.StringLitNode:
+        return c.generateStringLiteral(n)
     case *parser.VarAccessNode, *parser.ObjectAccessNode, *parser.ArrayAccessNode:
         return c.generateAccess(n, true)
     case *parser.CallExprNode:

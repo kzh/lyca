@@ -1,8 +1,6 @@
 package codegen
 
 import (
-//    "log"
-
     "llvm.org/llvm/bindings/go/llvm"
     "github.com/furryfaust/lyca/src/parser"
 )
@@ -33,9 +31,12 @@ func (c *Codegen) getLLVMType(node parser.Node) llvm.Type {
     case *ArrayTypeNode:
     */
     case *parser.NamedTypeNode:
-        if prim, ok := PRIMITIVE_TYPES[t.Name.Value]; ok {
+        name := t.Name.Value
+        if prim, ok := PRIMITIVE_TYPES[name]; ok {
             return prim
-        } else if t, ok := c.templates[t.Name.Value]; ok {
+        }
+
+        if t, ok := c.templates[name]; ok {
             return llvm.PointerType(t.Type, 0)
         }
     case *parser.BinaryExprNode:
