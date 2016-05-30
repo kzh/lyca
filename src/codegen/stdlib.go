@@ -24,8 +24,27 @@ func (c *Codegen) stdString() {
         PRIMITIVE_TYPES["int"],
         PRIMITIVE_TYPES["int"],
     }
-
     tmpl.Type.StructSetBody(vars, false)
+
+    toCFuncType := llvm.FunctionType(llvm.PointerType(PRIMITIVE_TYPES["char"], 0), []llvm.Type{
+        llvm.PointerType(tmpl.Type, 0),
+    }, false)
+    toCFunc := llvm.AddFunction(c.module, "-string-toC", toCFuncType)
+    toCFunc.Param(0).SetName("this")
+    block := llvm.AddBasicBlock(c.module.NamedFunction("-string-toC"), "entry")
+    c.functions["-string-toC"] = block
+    c.currFunc = "-string-toC"
+    c.builder.SetInsertPoint(block, block.LastInstruction())
+    ret := c.builder.CreateStructGEP(c.getCurrParam("this"), 0, "")
+    ret = c.builder.CreateLoad(ret, "")
+    c.builder.CreateRet(ret)
+
+    printFuncType := llvm.FunctionType(PRIMITIVE_TYPES["int"], []llvm.Type{
+        llvm.PointerType(PRIMITIVE_TYPES["char"], 0),
+    }, true)
+    printFunc := llvm.AddFunction(c.module, "printf", printFuncType)
+    printFunc.SetLinkage(llvm.ExternalLinkage)
+    printFunc.SetFunctionCallConv(llvm.CCallConv)
 }
 
 func (c *Codegen) generateStringLiteral(n *parser.StringLitNode) llvm.Value {
