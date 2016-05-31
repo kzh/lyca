@@ -142,7 +142,7 @@ func (c *Codegen) getFunction(node parser.Node) (llvm.Value, []llvm.Value) {
     case *parser.VarAccessNode:
         return c.module.NamedFunction(t.Name.Value), []llvm.Value{}
     case *parser.ObjectAccessNode:
-        tmpl := c.getLLVMType(t.Object).ElementType().ElementType().StructName()
+        tmpl := c.getStructFromPointer(c.getLLVMType(t.Object))
         obj := c.generateAccess(t.Object, true)
 
         return c.module.NamedFunction("-" + tmpl + "-" + t.Member.Value), []llvm.Value{obj}
@@ -235,7 +235,10 @@ func (c *Codegen) generateCall(node *parser.CallExprNode, obj llvm.Value) llvm.V
     }
 
     for i, arg := range node.Arguments {
-        expr := c.convert(c.generateExpression(arg), fn.Type().ElementType().ParamTypes()[i])
+        expr := c.generateExpression(arg)
+        if fn.Type().ElementType().ParamTypesCount() > i {
+            expr = c.convert(expr, fn.Type().ElementType().ParamTypes()[i])
+        }
         args = append(args, expr)
     }
 
@@ -302,6 +305,8 @@ func (c *Codegen) generateAccess(node parser.Node, val bool) (v llvm.Value) {
         obj := c.generateAccess(t.Object, true)
         index := c.templates[obj.Type().ElementType().StructName()].Variables[t.Member.Value]
         v = c.builder.CreateStructGEP(obj, index, "")
+    case *parser.StringLitNode:
+        return c.generateStringLiteral(t)
     }
 
     if val {

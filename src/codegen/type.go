@@ -1,6 +1,8 @@
 package codegen
 
 import (
+//    "log"
+
     "llvm.org/llvm/bindings/go/llvm"
     "github.com/furryfaust/lyca/src/parser"
 )
@@ -51,6 +53,8 @@ func (c *Codegen) getLLVMType(node parser.Node) llvm.Type {
         } else {
             return PRIMITIVE_TYPES["int"]
         }
+    case *parser.StringLitNode:
+        return llvm.PointerType(c.templates["string"].Type, 0)
     case *parser.VarAccessNode:
         if param := c.getCurrParam(t.Name.Value); !param.IsNil() {
             return param.Type()
@@ -58,7 +62,10 @@ func (c *Codegen) getLLVMType(node parser.Node) llvm.Type {
             return t
         }
     case *parser.ObjectAccessNode:
-        return c.getLLVMType(t.Object)
+        obj   := c.getLLVMType(t.Object)
+        tmpl  := c.templates[c.getStructFromPointer(obj)]
+
+        return c.getLLVMType(tmpl.Values[tmpl.Variables[t.Member.Value]].Type)
     case *parser.CallExprNode:
         return c.getLLVMTypeOfCall(t)
     }
@@ -73,6 +80,14 @@ func (c *Codegen) getLLVMTypeOfCall(node *parser.CallExprNode) llvm.Type {
     }
 
     return llvm.VoidType()
+}
+
+func (c *Codegen) getStructFromPointer(t llvm.Type) string {
+    for t.TypeKind() == llvm.PointerTypeKind {
+        t = t.ElementType()
+    }
+
+    return t.StructName()
 }
 
 func (c *Codegen) convert(val llvm.Value, t llvm.Type) llvm.Value {

@@ -1,11 +1,31 @@
 func () > main > () {
-    Person p = make Person < ("Kevin");
+    Person p = make Person < ("Kevin", 5);
+    p.id.setId(10);
+
+    string message = "%d"
+    printf(message.toCStr(), p.getId());
+}
+
+tmpl Id {
+    int id;
+
+    func (int id) > setId > () {
+        this.id = id;
+    }
 }
 
 tmpl Person {
-    string name;
+    Id id;
 
-    constructor < (string name) {
-        this.name = name;
+    constructor < (string name, int age) {
+        this.id = make Id < ();
+    }
+
+    func (int id) > setId > () {
+        this.id.setId(id);
+    }
+
+    func () > getId > (int) {
+        return this.id.id;
     }
 }
