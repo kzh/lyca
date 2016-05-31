@@ -77,6 +77,10 @@ func (c *Codegen) getLLVMTypeOfCall(node *parser.CallExprNode) llvm.Type {
     switch t := node.Function.(type) {
         case *parser.VarAccessNode:
             return c.module.NamedFunction(t.Name.Value).Type().ReturnType()
+        case *parser.ObjectAccessNode:
+            tmpl := c.getStructFromPointer(c.getLLVMType(t.Object))
+
+            return c.module.NamedFunction("-" + tmpl + "-" + t.Member.Value).Type().ElementType().ReturnType()
     }
 
     return llvm.VoidType()

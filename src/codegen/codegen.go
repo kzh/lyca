@@ -307,6 +307,10 @@ func (c *Codegen) generateAccess(node parser.Node, val bool) (v llvm.Value) {
         v = c.builder.CreateStructGEP(obj, index, "")
     case *parser.StringLitNode:
         return c.generateStringLiteral(t)
+    case *parser.CallExprNode:
+        return c.generateCall(t, null)
+    case *parser.MakeExprNode:
+        return c.generateMake(t)
     }
 
     if val {
@@ -334,14 +338,8 @@ func (c *Codegen) generateExpression(node parser.Node) llvm.Value {
         return llvm.ConstInt(PRIMITIVE_TYPES["boolean"], uint64(i), false)
     case *parser.CharLitNode:
         return llvm.ConstInt(PRIMITIVE_TYPES["char"], uint64(n.Value), false)
-    case *parser.StringLitNode:
-        return c.generateStringLiteral(n)
-    case *parser.VarAccessNode, *parser.ObjectAccessNode, *parser.ArrayAccessNode:
+    case *parser.VarAccessNode, *parser.ObjectAccessNode, *parser.ArrayAccessNode, *parser.CallExprNode, *parser.StringLitNode, *parser.MakeExprNode:
         return c.generateAccess(n, true)
-    case *parser.CallExprNode:
-        return c.generateCall(n, null)
-    case *parser.MakeExprNode:
-        return c.generateMake(n)
     }
 
     return null
