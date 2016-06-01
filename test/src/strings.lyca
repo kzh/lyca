@@ -1,24 +1,4 @@
 func () > main > () {
-    Person p = make Person < ("Kevin", 5);
-
-    string message = "I am %s and I am %d years old. ";
-    printf(message.toCStr(), p.getName().toCStr(), p.getAge());
-}
-
-tmpl Person {
-    string _name;
-    int _age;
-
-    constructor < (string name, int age) {
-        this._name = name;
-        this._age = age;
-    }
-
-    func () > getName > (string) {
-        return this._name;
-    } 
-
-    func () > getAge > (int) {
-        return this._age;
-    }
+    string name = "kevin";
+    printf("%d".toCStr(), name.len());
 }
