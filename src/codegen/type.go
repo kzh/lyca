@@ -87,11 +87,15 @@ func (c *Codegen) getLLVMTypeOfCall(node *parser.CallExprNode) llvm.Type {
 }
 
 func (c *Codegen) getStructFromPointer(t llvm.Type) string {
+    return c.getUnderlyingType(t).StructName()
+}
+
+func (c *Codegen) getUnderlyingType(t llvm.Type) llvm.Type {
     for t.TypeKind() == llvm.PointerTypeKind {
         t = t.ElementType()
     }
 
-    return t.StructName()
+    return t
 }
 
 func (c *Codegen) convert(val llvm.Value, t llvm.Type) llvm.Value {
@@ -104,6 +108,17 @@ func (c *Codegen) convert(val llvm.Value, t llvm.Type) llvm.Value {
         if t == PRIMITIVE_TYPES["float"] {
             return c.builder.CreateSIToFP(val, t, "")
         }
+    }
+
+    return val
+}
+
+func (c *Codegen) unbox(val llvm.Value) llvm.Value {
+    t := c.getUnderlyingType(val.Type())
+    switch t {
+    case c.templates["string"].Type:
+        val = c.builder.CreateStructGEP(val, 0, "")
+        val = c.builder.CreateLoad(val, "")
     }
 
     return val

@@ -27,27 +27,14 @@ func (c *Codegen) stdString() {
     tmpl.Type.StructSetBody(vars, false)
     tmpl.Variables = map[string]int{"length": 0}
 
-    toCFuncType := llvm.FunctionType(llvm.PointerType(PRIMITIVE_TYPES["char"], 0), []llvm.Type{
-        llvm.PointerType(tmpl.Type, 0),
-    }, false)
-    toCFunc := llvm.AddFunction(c.module, "-string-toCStr", toCFuncType)
-    toCFunc.Param(0).SetName("this")
-    block := llvm.AddBasicBlock(c.module.NamedFunction("-string-toCStr"), "entry")
-    c.functions["-string-toCStr"] = block
-    c.currFunc = "-string-toCStr"
-    c.builder.SetInsertPoint(block, block.LastInstruction())
-    ret := c.builder.CreateStructGEP(c.getCurrParam("this"), 0, "")
-    ret = c.builder.CreateLoad(ret, "")
-    c.builder.CreateRet(ret)
-
     lenFuncType := llvm.FunctionType(PRIMITIVE_TYPES["int"], []llvm.Type{llvm.PointerType(tmpl.Type, 0)}, false)
     lenFunc := llvm.AddFunction(c.module, "-string-len", lenFuncType)
     lenFunc.Param(0).SetName("this")
-    block = llvm.AddBasicBlock(c.module.NamedFunction("-string-len"), "entry")
+    block := llvm.AddBasicBlock(c.module.NamedFunction("-string-len"), "entry")
     c.functions["-string-len"] = block
     c.currFunc = "-string-len"
     c.builder.SetInsertPoint(block, block.LastInstruction())
-    ret = c.builder.CreateStructGEP(c.getCurrParam("this"), 1, "")
+    ret := c.builder.CreateStructGEP(c.getCurrParam("this"), 1, "")
     ret = c.builder.CreateLoad(ret, "")
     ret = c.builder.CreateSub(ret, llvm.ConstInt(PRIMITIVE_TYPES["int"], 1, false), "")
     c.builder.CreateRet(ret)
@@ -55,9 +42,7 @@ func (c *Codegen) stdString() {
     printFuncType := llvm.FunctionType(PRIMITIVE_TYPES["int"], []llvm.Type{
         llvm.PointerType(PRIMITIVE_TYPES["char"], 0),
     }, true)
-    printFunc := llvm.AddFunction(c.module, "printf", printFuncType)
-    printFunc.SetLinkage(llvm.ExternalLinkage)
-    printFunc.SetFunctionCallConv(llvm.CCallConv)
+    llvm.AddFunction(c.module, "printf", printFuncType)
 }
 
 func (c *Codegen) generateStringLiteral(n *parser.StringLitNode) llvm.Value {

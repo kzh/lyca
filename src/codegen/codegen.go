@@ -239,6 +239,12 @@ func (c *Codegen) generateCall(node *parser.CallExprNode, obj llvm.Value) llvm.V
         if fn.Type().ElementType().ParamTypesCount() > i {
             expr = c.convert(expr, fn.Type().ElementType().ParamTypes()[i])
         }
+
+        //Unbox arguments for C functions
+        if fn.BasicBlocksCount() == 0 {
+            expr = c.unbox(expr)
+        }
+
         args = append(args, expr)
     }
 

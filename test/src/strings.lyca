@@ -1,4 +1,4 @@
 func () > main > () {
     string name = "kevin";
-    printf("%d".toCStr(), name.len());
+    printf("%s is %d years old. ", name, 5);
 }
