@@ -2,13 +2,27 @@ package codegen
 
 import (
 //    "log"
+//    "fmt"
 
     "llvm.org/llvm/bindings/go/llvm"
     "github.com/furryfaust/lyca/src/parser"
 )
 
 func (c *Codegen) injectStdLib() {
+    c.declareMemcpy();
+
     c.stdString();
+}
+
+func (c *Codegen) declareMemcpy() {
+    t := llvm.FunctionType(llvm.VoidType(), []llvm.Type{
+        llvm.PointerType(PRIMITIVE_TYPES["char"], 0),
+        llvm.PointerType(PRIMITIVE_TYPES["char"], 0),
+        PRIMITIVE_TYPES["int"],
+        PRIMITIVE_TYPES["int"],
+        PRIMITIVE_TYPES["char"],
+    }, false)
+    llvm.AddFunction(c.module, "llvm.memcpy.p0i8.p0i8.i32", t)
 }
 
 func (c *Codegen) stdString() {
@@ -25,7 +39,6 @@ func (c *Codegen) stdString() {
         PRIMITIVE_TYPES["int"],
     }
     tmpl.Type.StructSetBody(vars, false)
-    tmpl.Variables = map[string]int{"length": 0}
 
     lenFuncType := llvm.FunctionType(PRIMITIVE_TYPES["int"], []llvm.Type{llvm.PointerType(tmpl.Type, 0)}, false)
     lenFunc := llvm.AddFunction(c.module, "-string-len", lenFuncType)
