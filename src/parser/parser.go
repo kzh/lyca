@@ -462,7 +462,7 @@ func (p *parser) parseBinaryExpr(expr Node) Node {
     if !p.matchToken(0, lexer.TOKEN_OPERATOR, "") {
         return nil
     }
-//    rollback := p.curr
+    rollback := p.curr
 
     for {
         if !p.matchToken(0, lexer.TOKEN_OPERATOR, "") {
@@ -477,14 +477,14 @@ func (p *parser) parseBinaryExpr(expr Node) Node {
 
         right := p.parsePostfixExpr()
         if right == nil {
-//            goto rollback
+            goto rollback
         }
 
         if p.matchToken(0, lexer.TOKEN_OPERATOR, "") {
             next := OPERATOR_PRECEDENCE[p.peek(0).Content]
             if next > precedence {
                 if right = p.parseBinaryExpr(right); right == nil {
-//                    goto rollback
+                    goto rollback
                 }
             }
         }
@@ -498,11 +498,9 @@ func (p *parser) parseBinaryExpr(expr Node) Node {
     }
     return expr
 
-/*
 rollback:
     p.curr = rollback
     return nil
-*/
 }
 
 func (p *parser) parsePostfixExpr() (res Node) {
@@ -574,7 +572,11 @@ func (p *parser) parseArguments() (args []Node) {
 }
 
 func (p *parser) parsePrimaryExpr() (res Node) {
-    if makeExpr := p.parseMakeExpr(); makeExpr != nil {
+    if p.matchToken(0, lexer.TOKEN_SEPARATOR, "(") {
+        p.consume()
+        res = p.parseExpr();
+        p.expect(lexer.TOKEN_SEPARATOR, ")")
+    } else if makeExpr := p.parseMakeExpr(); makeExpr != nil {
         res = makeExpr
     } else if litExpr := p.parseLitExpr(); litExpr != nil {
         res = litExpr

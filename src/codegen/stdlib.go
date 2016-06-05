@@ -48,7 +48,6 @@ func (c *Codegen) stdString() {
         llvm.PointerType(PRIMITIVE_TYPES["char"], 0),
         PRIMITIVE_TYPES["int"],
         PRIMITIVE_TYPES["int"],
-        PRIMITIVE_TYPES["int"],
     }
     tmpl.Type.StructSetBody(vars, false)
 
@@ -90,4 +89,8 @@ func (c *Codegen) generateStringLiteral(n *parser.StringLitNode) llvm.Value {
     c.builder.CreateStore(llvm.ConstInt(PRIMITIVE_TYPES["int"], uint64(len(vals)), false), c.builder.CreateStructGEP(str, 2, ""))
 
     return str
+}
+
+func (c *Codegen) generateStringConcat(str1, str2 llvm.Value) llvm.Value {
+    return str1
 }

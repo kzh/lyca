@@ -1,4 +1,8 @@
 func () > main > () {
-    string name = "kevin";
+    string name = getString();
     printf("%s is %d years old. ", name, 5);
+}
+
+func () > getString > (string) {
+    return "Cool";
 }

@@ -368,6 +368,8 @@ func (c *Codegen) generateBinaryExpression(node *parser.BinaryExprNode) llvm.Val
             return c.builder.CreateFAdd(left, right, "")
         } else if t == PRIMITIVE_TYPES["int"] {
             return c.builder.CreateAdd(left, right, "")
+        } else if t == c.templates["string"].Type {
+            return c.generateStringConcat(left, right)
         }
     case "-":
         if t == PRIMITIVE_TYPES["float"] {
