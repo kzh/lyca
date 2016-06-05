@@ -89,7 +89,7 @@ func (c *Codegen) presetTemplate(n *parser.TemplateNode) {
 
 func (c *Codegen) declareFunc(n *parser.FuncNode, obj llvm.Type) {
     sig := n.Signature
-    name := sig.Name.Value
+    name := c.mangle(sig.Name.Value)
     f := c.getLLVMFuncType(sig.Return, sig.Parameters, obj)
     llvmf := llvm.AddFunction(c.module, name, f)
 
@@ -105,7 +105,7 @@ func (c *Codegen) declareFunc(n *parser.FuncNode, obj llvm.Type) {
 
     block := llvm.AddBasicBlock(c.module.NamedFunction(name),"entry")
 
-    c.functions[sig.Name.Value] = block
+    c.functions[name] = block
 }
 
 func (c *Codegen) declareTemplate(n *parser.TemplateNode) {
@@ -140,7 +140,8 @@ func (c *Codegen) declareTemplate(n *parser.TemplateNode) {
 func (c *Codegen) getFunction(node parser.Node) (llvm.Value, []llvm.Value) {
     switch t := node.(type) {
     case *parser.VarAccessNode:
-        return c.module.NamedFunction(t.Name.Value), []llvm.Value{}
+        name := c.mangle(t.Name.Value)
+        return c.module.NamedFunction(name), []llvm.Value{}
     case *parser.ObjectAccessNode:
         tmpl := c.getStructFromPointer(c.getLLVMType(t.Object))
         obj := c.generateAccess(t.Object, true)
@@ -177,7 +178,7 @@ func (c *Codegen) generateTopLevelNodes() {
 
 func (c *Codegen) generateFunc(node *parser.FuncNode) {
     c.enterScope()
-    c.currFunc = node.Signature.Name.Value
+    c.currFunc = c.mangle(node.Signature.Name.Value)
     block := c.functions[c.currFunc]
     c.builder.SetInsertPoint(block, block.LastInstruction())
 

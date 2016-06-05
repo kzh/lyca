@@ -8,6 +8,18 @@ import (
     "github.com/furryfaust/lyca/src/parser"
 )
 
+var mangleFuncs map[string]int = map[string]int {
+    "malloc": 0,
+}
+
+func (c *Codegen) mangle(name string) string {
+    if _, ok := mangleFuncs[name]; ok {
+        name = "--" + name
+    }
+
+    return name
+}
+
 func (c *Codegen) injectStdLib() {
     c.declareMemcpy();
 
