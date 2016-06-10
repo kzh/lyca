@@ -2,7 +2,6 @@ package codegen
 
 import (
 //    "log"
-//    "fmt"
 
     "llvm.org/llvm/bindings/go/llvm"
     "github.com/furryfaust/lyca/src/parser"
@@ -32,7 +31,7 @@ func (c *Codegen) declareMemcpy() {
         llvm.PointerType(PRIMITIVE_TYPES["char"], 0),
         PRIMITIVE_TYPES["int"],
         PRIMITIVE_TYPES["int"],
-        PRIMITIVE_TYPES["char"],
+        PRIMITIVE_TYPES["boolean"],
     }, false)
     llvm.AddFunction(c.module, "llvm.memcpy.p0i8.p0i8.i32", t)
 }
@@ -92,5 +91,28 @@ func (c *Codegen) generateStringLiteral(n *parser.StringLitNode) llvm.Value {
 }
 
 func (c *Codegen) generateStringConcat(str1, str2 llvm.Value) llvm.Value {
-    return str1
+//    one := llvm.ConstInt(PRIMITIVE_TYPES["int"], 1, false)
+
+    len1      := c.builder.CreateCall(c.module.NamedFunction("-string-len"), []llvm.Value{str1}, "")
+    len2      := c.builder.CreateLoad(c.builder.CreateStructGEP(str2, 1, ""), "")
+    len_sum   := c.builder.CreateAdd(len1, len2, "")
+
+    chars := c.builder.CreateCall(c.module.NamedFunction("malloc"), []llvm.Value{len_sum}, "")
+    c.builder.CreateCall(c.module.NamedFunction("llvm.memcpy.p0i8.p0i8.i32"), []llvm.Value{
+        chars, c.unbox(str1), len1,
+        llvm.ConstInt(PRIMITIVE_TYPES["int"], 0, false),
+        llvm.ConstInt(PRIMITIVE_TYPES["boolean"], 0, false),
+    }, "")
+    c.builder.CreateCall(c.module.NamedFunction("llvm.memcpy.p0i8.p0i8.i32"), []llvm.Value{
+        c.builder.CreateGEP(chars, []llvm.Value{len1}, ""), c.unbox(str2), len2,
+        llvm.ConstInt(PRIMITIVE_TYPES["int"], 0, false),
+        llvm.ConstInt(PRIMITIVE_TYPES["boolean"], 0, false),
+    }, "")
+
+    str := c.builder.CreateMalloc(c.templates["string"].Type, "")
+    c.builder.CreateStore(chars, c.builder.CreateStructGEP(str, 0, ""))
+    c.builder.CreateStore(len_sum, c.builder.CreateStructGEP(str, 1, ""))
+    c.builder.CreateStore(len_sum, c.builder.CreateStructGEP(str, 2, ""))
+
+    return str
 }

@@ -318,6 +318,8 @@ func (c *Codegen) generateAccess(node parser.Node, val bool) (v llvm.Value) {
         return c.generateCall(t, null)
     case *parser.MakeExprNode:
         return c.generateMake(t)
+    case *parser.BinaryExprNode:
+        return c.generateBinaryExpression(t)
     }
 
     if val {
@@ -361,7 +363,7 @@ func (c *Codegen) generateBinaryExpression(node *parser.BinaryExprNode) llvm.Val
         left = c.convert(left, PRIMITIVE_TYPES["float"])
     }
 
-    t := left.Type()
+    t := c.getUnderlyingType(left.Type())
     switch node.Operator.Value {
     case "+":
         if t == PRIMITIVE_TYPES["float"] {
