@@ -1,4 +1,5 @@
 func () > main > () {
-    string str = "kevin" + " " + "is cool";
-    printf("%s %d", str, str.len());
+    string name = "kevin";
+    string str = name + " " + "is cool";
+    printf("%s %d \n", str, str.len());
 }

@@ -695,13 +695,35 @@ func (p *parser) parseNumLit() (res *NumLitNode) {
     return
 }
 
+var ESCAPE map[rune]rune = map[rune]rune{
+    '\\': '\\',
+    'n': '\n',
+}
+
+func (p *parser) unescape(str string) string {
+    res := []rune{}
+    for i := 0; i != len(str); i++ {
+        if str[i] == '\\' {
+            i++
+            r, _ := ESCAPE[rune(str[i])]
+
+            res = append(res, r)
+            continue;
+        }
+
+        res = append(res, rune(str[i]))
+    }
+
+    return string(res)
+}
+
 func (p *parser) parseStringLit() (res *StringLitNode) {
     if !p.matchToken(0, lexer.TOKEN_STRING, "") {
         return
     }
     token := p.consume()
 
-    res = &StringLitNode{Value: token.Content}
+    res = &StringLitNode{Value: p.unescape(token.Content)}
     res.SetLoc(token.Location)
     return
 }
@@ -712,7 +734,7 @@ func (p *parser) parseCharLit() (res *CharLitNode) {
     }
     token := p.consume()
 
-    res = &CharLitNode{Value: []rune(token.Content)[0]}
+    res = &CharLitNode{Value: []rune(p.unescape(token.Content))[0]}
     res.SetLoc(token.Location)
     return
 }

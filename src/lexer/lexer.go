@@ -121,7 +121,7 @@ func (l *lexer) lexString() {
 
 func (l *lexer) lexEscape(r rune) {
     switch l.peek(0) {
-    case '\\', r:
+    case '\\', 'n', r:
         l.consume()
     }
 }
