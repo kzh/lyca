@@ -1,5 +1,14 @@
 func () > main > () {
-    string name = "kevin";
-    string str = name + " " + "is cool";
+    Person p = make Person < ("Kevin");
+
+    string str = p.name + " " + "is cool";
     printf("%s %d \n", str, str.len());
+}
+
+tmpl Person {
+    string name;
+
+    constructor < (string name) {
+        this.name = name;
+    }
 }

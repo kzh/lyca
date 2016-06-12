@@ -182,25 +182,33 @@ func (c *Codegen) generateFunc(node *parser.FuncNode) {
     block := c.functions[c.currFunc]
     c.builder.SetInsertPoint(block, block.LastInstruction())
 
-    var ret bool
-    for _, n := range node.Body.Nodes {
-        switch t := n.(type) {
-            case *parser.VarDeclNode:
-                c.generateVarDecl(t, false)
-            case *parser.AssignStmtNode:
-                c.generateAssign(t)
-            case *parser.CallStmtNode:
-                c.generateCall(t.Call, null)
-            case *parser.ReturnStmtNode:
-                ret = true
-                c.generateReturn(t)
-        }
-    }
-
+    ret := c.generateBlock(node.Body)
     if !ret {
         c.builder.CreateRetVoid()
     }
     c.exitScope()
+}
+
+func (c *Codegen) generateBlock(node *parser.BlockNode) (ret bool) {
+    for _, n := range node.Nodes {
+        switch t := n.(type) {
+        case *parser.VarDeclNode:
+            c.generateVarDecl(t, false)
+        case *parser.AssignStmtNode:
+            c.generateAssign(t)
+        case *parser.CallStmtNode:
+            c.generateCall(t.Call, null)
+        case *parser.ReturnStmtNode:
+            ret = true
+            c.generateReturn(t)
+        case *parser.IfStmtNode:
+            if c.generateControl(t) {
+                ret = true
+            }
+        }
+    }
+
+    return
 }
 
 func (c *Codegen) generateTemplateDecl(node *parser.TemplateNode) {
@@ -272,6 +280,44 @@ func (c *Codegen) generateReturn(node *parser.ReturnStmtNode) {
     ret := c.convert(c.generateExpression(node.Value), t)
 
     c.builder.CreateRet(ret)
+}
+
+func (c *Codegen) generateControl(node *parser.IfStmtNode) (ret bool) {
+    currFunc := c.module.NamedFunction(c.currFunc)
+
+    tru  := llvm.AddBasicBlock(currFunc, "")
+    var els llvm.BasicBlock
+    if node.Else != nil {
+        els = llvm.AddBasicBlock(currFunc, "")
+    }
+    exit := llvm.AddBasicBlock(currFunc, "")
+
+    cond := c.generateExpression(node.Condition)
+    if node.Else != nil {
+        c.builder.CreateCondBr(cond, tru, els)
+    } else {
+        c.builder.CreateCondBr(cond, tru, exit)
+    }
+
+    c.builder.SetInsertPoint(tru, tru.LastInstruction())
+    if c.generateBlock(node.Body) {
+        ret = true
+    }
+    c.builder.CreateBr(exit)
+
+    if node.Else != nil {
+        c.builder.SetInsertPoint(els, els.LastInstruction())
+        switch t := node.Else.(type) {
+        case *parser.BlockNode:
+            ret = c.generateBlock(t) && ret
+        case *parser.IfStmtNode:
+            ret = c.generateControl(t) && ret
+        }
+        c.builder.CreateBr(exit)
+    }
+
+    c.builder.SetInsertPoint(exit, exit.LastInstruction())
+    return
 }
 
 func (c *Codegen) generateVarDecl(node *parser.VarDeclNode, global bool) {

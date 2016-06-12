@@ -1,0 +1,17 @@
+func () > main > () {
+    if (true) {
+        printf("kev \n");
+    }
+
+    if (false) {
+        printf("blah \n");
+    }
+
+    if (false) {
+        printf("kev \n");
+    } else if (false) {
+        printf("cool \n");
+    } else {
+        printf("blah \n");
+    }
+}
