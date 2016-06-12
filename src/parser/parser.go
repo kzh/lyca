@@ -478,38 +478,30 @@ func (p *parser) parseExpr() (res Node) {
         return
     }
 
-    if bin := p.parseBinaryExpr(res); bin != nil {
+    if bin := p.parseBinaryExpr(res, 0); bin != nil {
         res = bin
     }
 
     return
 }
 
-/*
-1 + 2 * 3 + 4 / 5
-
-(1 + 2)
-(1 + 2) * 3
-(1 + (2 * 3))
-((1 + (2 * 3)) + 4)
-((1 + (2 * 3)) + 4) / 5
-((1 + (2 * 3)) + (4 / 5))
-*/
-func (p *parser) parseBinaryExpr(expr Node) Node {
+func (p *parser) parseBinaryExpr(expr Node, min int) Node {
     if !p.matchToken(0, lexer.TOKEN_OPERATOR, "") {
         return nil
     }
     rollback := p.curr
 
+    loc := expr.Loc()
     for {
         if !p.matchToken(0, lexer.TOKEN_OPERATOR, "") {
             break
         }
 
         precedence, ok := OPERATOR_PRECEDENCE[p.peek(0).Content]
-        if !ok {
+        if !ok || precedence < min {
             break
         }
+
         operator := p.consume()
 
         right := p.parsePostfixExpr()
@@ -517,12 +509,9 @@ func (p *parser) parseBinaryExpr(expr Node) Node {
             goto rollback
         }
 
-        if p.matchToken(0, lexer.TOKEN_OPERATOR, "") {
-            next := OPERATOR_PRECEDENCE[p.peek(0).Content]
-            if next > precedence {
-                if right = p.parseBinaryExpr(right); right == nil {
-                    goto rollback
-                }
+        for p.matchToken(0, lexer.TOKEN_OPERATOR, "") && OPERATOR_PRECEDENCE[p.peek(0).Content] > precedence {
+            if right = p.parseBinaryExpr(right, OPERATOR_PRECEDENCE[p.peek(0).Content]); right == nil {
+                goto rollback
             }
         }
 
@@ -531,8 +520,11 @@ func (p *parser) parseBinaryExpr(expr Node) Node {
             Left: expr,
             Right: right,
         }
-        expr.SetLoc(lexer.Span{expr.Loc().Start, right.Loc().End})
+
+        loc.End = right.Loc().End
     }
+
+    expr.SetLoc(loc)
     return expr
 
 rollback:
