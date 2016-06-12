@@ -76,7 +76,7 @@ func (p *parser) matchTokens(tokens ...interface{}) bool {
 
 func (p *parser) expect(t lexer.TokenType, content string) *lexer.Token {
     if !p.matchToken(0, t, content) {
-        log.Fatal("Unexpected token ", p.peek(0).Content, " Expected ", content)
+        log.Fatal(p.peek(0).Location.Start.Line, ":", p.peek(0).Location.Start.Offset, " Unexpected token ", p.peek(0).Content, " Expected ", content)
     }
 
     return p.consume()
@@ -123,13 +123,14 @@ func (p *parser) parseBlock() (res *BlockNode) {
 }
 
 func (p *parser) parseNode() (res Node) {
-    if stmt := p.parseStmt(); stmt != nil {
+    stmt, term := p.parseStmt();
+    if stmt != nil {
         res = stmt
     } else if varDecl := p.parseVarDecl(); varDecl != nil {
         res = varDecl
     }
 
-    if res != nil {
+    if res != nil && term {
         p.expect(lexer.TOKEN_SEPARATOR, ";")
     }
     return
@@ -264,17 +265,53 @@ rollback:
     return
 }
 
-func (p *parser) parseStmt() (res Node) {
-    if returnStmt := p.parseReturnStmt(); returnStmt != nil {
+func (p *parser) parseStmt() (res Node, term bool) {
+    term = true
+    if ifStmt := p.parseIfStmt(); ifStmt != nil {
+        res  = ifStmt
+        term = false
+    } else if returnStmt := p.parseReturnStmt(); returnStmt != nil {
         res = returnStmt
     } else if callStmt := p.parseCallStmt(); callStmt != nil {
         res = callStmt
     } else if assignStmt := p.parseAssignStmt(); assignStmt != nil {
         res = assignStmt
-    } /* else if binopAssign := p.parseBinopAssignStmt(); binopAssign != nil {
+    }
+    /* else if binopAssign := p.parseBinopAssignStmt(); binopAssign != nil {
         res = assignStmt
     } */
 
+    return
+}
+
+func (p *parser) parseIfStmt() (res *IfStmtNode) {
+    if !p.matchToken(0, lexer.TOKEN_IDENTIFIER, KEYWORD_IF) {
+        return
+    }
+
+    token := p.consume()
+    p.expect(lexer.TOKEN_SEPARATOR, "(")
+    cond := p.parseExpr()
+    p.expect(lexer.TOKEN_SEPARATOR, ")")
+    body := p.parseBlock()
+
+    res = &IfStmtNode{
+        Condition: cond,
+        Body: body,
+    }
+
+    loc := lexer.Span{token.Location.Start, body.Loc().End}
+    if p.matchToken(0, lexer.TOKEN_IDENTIFIER, KEYWORD_ELSE) {
+        p.consume()
+        if p.matchToken(0, lexer.TOKEN_IDENTIFIER, KEYWORD_IF) {
+            res.Else = p.parseIfStmt()
+        } else if p.matchToken(0, lexer.TOKEN_SEPARATOR, "{") {
+            res.Else = p.parseBlock()
+        }
+        loc.End = res.Else.Loc().End
+    }
+
+    res.SetLoc(loc)
     return
 }
 

@@ -192,6 +192,13 @@ type AssignStmtNode struct {
     Value Node
 }
 
+type IfStmtNode struct {
+    baseNode
+    Condition Node
+    Body *BlockNode
+    Else Node
+}
+
 func (p *AST) Print() {
     for _, node := range p.Nodes {
         p.printNode(node, 0)
@@ -309,6 +316,14 @@ func (p *AST) printNode(node Node, pad int) {
         for _, node := range node.Nodes {
             p.printNode(node, pad + 2)
         }
+    case *IfStmtNode:
+        padPrint("[If Stmt Node]", pad)
+        padPrint("Condition:", pad + 1)
+        p.printNode(node.Condition, pad + 2)
+        padPrint("Body: ", pad + 1)
+        p.printNode(node.Body, pad + 2)
+        padPrint("Else: ", pad + 1)
+        p.printNode(node.Else, pad + 2)
     case *CallStmtNode:
         padPrint("[Call Stmt Node]", pad)
         padPrint("Expr: ", pad + 1)
