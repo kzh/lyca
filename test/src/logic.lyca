@@ -1,13 +1,14 @@
 func () > main > () {
-    if (true) {
+    if (1 != 1) {
         printf("kev \n");
     }
 
-    if (false) {
+    boolean b = 5 > 4;
+    if (b) {
         printf("blah \n");
     }
 
-    if (false) {
+    if (1 <= 1.0) {
         printf("kev \n");
     } else if (false) {
         printf("cool \n");

@@ -409,8 +409,19 @@ func (c *Codegen) generateBinaryExpression(node *parser.BinaryExprNode) llvm.Val
         left = c.convert(left, PRIMITIVE_TYPES["float"])
     }
 
-    t := c.getUnderlyingType(left.Type())
     switch node.Operator.Value {
+    case "+", "-", "*", "/":
+        return c.generateArithmeticBinary(left, right, node.Operator.Value)
+    case ">", ">=", "<", "<=", "==", "!=":
+        return c.generateComparisonBinary(left, right, node.Operator.Value)
+    }
+
+    return null
+}
+
+func (c *Codegen) generateArithmeticBinary(left, right llvm.Value, op string) llvm.Value {
+    t := c.getUnderlyingType(left.Type())
+    switch op {
     case "+":
         if t == PRIMITIVE_TYPES["float"] {
             return c.builder.CreateFAdd(left, right, "")
@@ -437,6 +448,27 @@ func (c *Codegen) generateBinaryExpression(node *parser.BinaryExprNode) llvm.Val
         } else if t == PRIMITIVE_TYPES["int"] {
             return c.builder.CreateSDiv(left, right, "")
         }
+    }
+
+    return null
+}
+
+var (
+    intPredicates map[string]llvm.IntPredicate = map[string]llvm.IntPredicate{
+        ">": llvm.IntSGT, ">=": llvm.IntSGE, "<": llvm.IntSLT, "<=": llvm.IntSLE, "==": llvm.IntEQ, "!=": llvm.IntNE,
+    }
+
+    floatPredicates map[string]llvm.FloatPredicate = map[string]llvm.FloatPredicate{
+        ">": llvm.FloatOGT, ">=": llvm.FloatOGE, "<": llvm.FloatOLT, "<=": llvm.FloatOLE, "==": llvm.FloatOEQ, "!=": llvm.FloatONE,
+    }
+)
+
+func (c *Codegen) generateComparisonBinary(left, right llvm.Value, op string) llvm.Value {
+    t := c.getUnderlyingType(left.Type())
+    if t == PRIMITIVE_TYPES["float"] {
+        return c.builder.CreateFCmp(floatPredicates[op], left, right, "")
+    } else if t == PRIMITIVE_TYPES["int"] {
+        return c.builder.CreateICmp(intPredicates[op], left, right, "")
     }
 
     return null

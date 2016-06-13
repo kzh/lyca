@@ -277,9 +277,6 @@ func (p *parser) parseStmt() (res Node, term bool) {
     } else if assignStmt := p.parseAssignStmt(); assignStmt != nil {
         res = assignStmt
     }
-    /* else if binopAssign := p.parseBinopAssignStmt(); binopAssign != nil {
-        res = assignStmt
-    } */
 
     return
 }
