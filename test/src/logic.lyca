@@ -15,4 +15,16 @@ func () > main > () {
     } else {
         printf("blah \n");
     }
+
+    if (true && false) {
+        printf("nope \n");
+    }
+
+    if (true || false) {
+        printf("yup \n");
+    }
+
+    if ((true && false) || (true && true)) {
+        printf("yeas \n");
+    }
 }

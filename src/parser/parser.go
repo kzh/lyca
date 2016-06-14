@@ -12,6 +12,8 @@ var OPERATOR_PRECEDENCE map[string]int = map[string]int{
     ">":  2, "<":  2, ">=": 2, "<=": 2,
     "+":  3, "-":  3,
     "*":  4, "/":  4, "%": 4,
+    "||": 5,
+    "&&": 6,
 }
 
 type parser struct {

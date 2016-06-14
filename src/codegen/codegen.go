@@ -411,15 +411,17 @@ func (c *Codegen) generateBinaryExpression(node *parser.BinaryExprNode) llvm.Val
 
     switch node.Operator.Value {
     case "+", "-", "*", "/":
-        return c.generateArithmeticBinary(left, right, node.Operator.Value)
+        return c.generateArithmeticBinaryExpr(left, right, node.Operator.Value)
     case ">", ">=", "<", "<=", "==", "!=":
-        return c.generateComparisonBinary(left, right, node.Operator.Value)
+        return c.generateComparisonBinaryExpr(left, right, node.Operator.Value)
+    case "&&", "||":
+        return c.generateLogicalBinaryExpr(left, right, node.Operator.Value)
     }
 
     return null
 }
 
-func (c *Codegen) generateArithmeticBinary(left, right llvm.Value, op string) llvm.Value {
+func (c *Codegen) generateArithmeticBinaryExpr(left, right llvm.Value, op string) llvm.Value {
     t := c.getUnderlyingType(left.Type())
     switch op {
     case "+":
@@ -463,12 +465,23 @@ var (
     }
 )
 
-func (c *Codegen) generateComparisonBinary(left, right llvm.Value, op string) llvm.Value {
+func (c *Codegen) generateComparisonBinaryExpr(left, right llvm.Value, op string) llvm.Value {
     t := c.getUnderlyingType(left.Type())
     if t == PRIMITIVE_TYPES["float"] {
         return c.builder.CreateFCmp(floatPredicates[op], left, right, "")
     } else if t == PRIMITIVE_TYPES["int"] {
         return c.builder.CreateICmp(intPredicates[op], left, right, "")
+    }
+
+    return null
+}
+
+func (c *Codegen) generateLogicalBinaryExpr(left, right llvm.Value, op string) llvm.Value {
+    switch op {
+    case "&&":
+        return c.builder.CreateAnd(left, right, "")
+    case "||":
+        return c.builder.CreateOr(left, right, "")
     }
 
     return null
