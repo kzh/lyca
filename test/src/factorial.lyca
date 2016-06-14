@@ -1,0 +1,21 @@
+func () > main > () {
+    printf("5! == 120 is %s \n", fmtBool(factorial(5) == 120));
+    printf("4! == 24 is %s \n", fmtBool(factorial(4) == 24));
+    printf("4! == 23 is %s \n", fmtBool(factorial(4) == 23));
+}
+
+func (int n) > factorial > (int) {
+    if (n == 0) {
+        return 1;
+    }
+
+    return n * factorial(n - 1);
+}
+
+func (boolean b) > fmtBool > (string) {
+    if (b) {
+        return "true";
+    } else {
+        return "false";
+    }
+}
