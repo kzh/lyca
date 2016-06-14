@@ -15,7 +15,7 @@ func (int n) > factorial > (int) {
 func (boolean b) > fmtBool > (string) {
     if (b) {
         return "true";
-    } else {
-        return "false";
     }
+
+    return "false";
 }

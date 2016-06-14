@@ -476,7 +476,7 @@ func (c *Codegen) generateComparisonBinaryExpr(left, right llvm.Value, op string
     t := c.getUnderlyingType(left.Type())
     if t == PRIMITIVE_TYPES["float"] {
         return c.builder.CreateFCmp(floatPredicates[op], left, right, "")
-    } else if t == PRIMITIVE_TYPES["int"] {
+    } else if t == PRIMITIVE_TYPES["int"] || op == "==" || op == "!=" {
         return c.builder.CreateICmp(intPredicates[op], left, right, "")
     }
 
