@@ -302,18 +302,25 @@ func (c *Codegen) generateControl(node *parser.IfStmtNode) (ret bool) {
     c.builder.SetInsertPoint(tru, tru.LastInstruction())
     if c.generateBlock(node.Body) {
         ret = true
+    } else {
+        c.builder.CreateBr(exit)
     }
-    c.builder.CreateBr(exit)
 
     if node.Else != nil {
         c.builder.SetInsertPoint(els, els.LastInstruction())
+        var ok bool
         switch t := node.Else.(type) {
         case *parser.BlockNode:
-            ret = c.generateBlock(t) && ret
+            ok = c.generateBlock(t)
+            ret = ok && ret
         case *parser.IfStmtNode:
-            ret = c.generateControl(t) && ret
+            ok = c.generateControl(t)
+            ret = ok && ret
         }
-        c.builder.CreateBr(exit)
+
+        if !ok {
+            c.builder.CreateBr(exit)
+        }
     }
 
     c.builder.SetInsertPoint(exit, exit.LastInstruction())
