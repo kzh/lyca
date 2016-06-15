@@ -7,4 +7,5 @@ const (
     KEYWORD_CONSTRUCTOR string = "constructor"
     KEYWORD_IF          string = "if"
     KEYWORD_ELSE        string = "else"
+    KEYWORD_FOR         string = "for"
 )

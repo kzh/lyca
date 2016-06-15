@@ -199,6 +199,14 @@ type IfStmtNode struct {
     Else Node
 }
 
+type LoopStmtNode struct {
+    baseNode
+    Init *VarDeclNode
+    Cond Node
+    Post Node
+    Body *BlockNode
+}
+
 func (p *AST) Print() {
     for _, node := range p.Nodes {
         p.printNode(node, 0)
@@ -324,6 +332,22 @@ func (p *AST) printNode(node Node, pad int) {
         p.printNode(node.Body, pad + 2)
         padPrint("Else: ", pad + 1)
         p.printNode(node.Else, pad + 2)
+    case *LoopStmtNode:
+        padPrint("[Loop Stmt Node]", pad)
+        if node.Init != nil {
+            padPrint("Init: ", pad + 1)
+            p.printNode(node.Init, pad + 2)
+        }
+        if node.Cond != nil {
+            padPrint("Condition: ", pad + 1)
+            p.printNode(node.Cond, pad + 2)
+        }
+        if node.Post != nil {
+            padPrint("Post: ", pad + 1)
+            p.printNode(node.Post, pad + 2)
+        }
+        padPrint("Body: ", pad + 1)
+        p.printNode(node.Body, pad + 2)
     case *CallStmtNode:
         padPrint("[Call Stmt Node]", pad)
         padPrint("Expr: ", pad + 1)

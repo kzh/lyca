@@ -272,6 +272,9 @@ func (p *parser) parseStmt() (res Node, term bool) {
     if ifStmt := p.parseIfStmt(); ifStmt != nil {
         res  = ifStmt
         term = false
+    } else if loopStmt := p.parseLoopStmt(); loopStmt != nil {
+        res = loopStmt
+        term = false
     } else if returnStmt := p.parseReturnStmt(); returnStmt != nil {
         res = returnStmt
     } else if callStmt := p.parseCallStmt(); callStmt != nil {
@@ -311,6 +314,32 @@ func (p *parser) parseIfStmt() (res *IfStmtNode) {
     }
 
     res.SetLoc(loc)
+    return
+}
+
+func (p *parser) parseLoopStmt() (res *LoopStmtNode) {
+    if !p.matchToken(0, lexer.TOKEN_IDENTIFIER, KEYWORD_FOR) {
+        return
+    }
+    token := p.consume()
+    p.expect(lexer.TOKEN_SEPARATOR, "(")
+
+    res = &LoopStmtNode{}
+    rollback := p.curr
+    if cond := p.parseExpr(); cond != nil && p.matchTokens(lexer.TOKEN_SEPARATOR, ")", lexer.TOKEN_SEPARATOR, "{") {
+        res.Cond = cond
+    } else {
+        p.curr = rollback
+        res.Init = p.parseVarDecl()
+        p.expect(lexer.TOKEN_SEPARATOR, ";")
+        res.Cond = p.parseExpr()
+        p.expect(lexer.TOKEN_SEPARATOR, ";")
+        res.Post, _ = p.parseStmt()
+    }
+
+    p.expect(lexer.TOKEN_SEPARATOR, ")")
+    res.Body = p.parseBlock()
+    res.SetLoc(lexer.Span{token.Location.Start, res.Body.Loc().End})
     return
 }
 
