@@ -205,6 +205,10 @@ func (c *Codegen) generateBlock(node *parser.BlockNode) (ret bool) {
             if c.generateControl(t) {
                 ret = true
             }
+        case *parser.LoopStmtNode:
+            if c.generateLoop(t) {
+                ret = true
+            }
         }
     }
 
@@ -324,6 +328,38 @@ func (c *Codegen) generateControl(node *parser.IfStmtNode) (ret bool) {
     }
 
     c.builder.SetInsertPoint(exit, exit.LastInstruction())
+    return
+}
+
+func (c *Codegen) generateLoop(node *parser.LoopStmtNode) (ret bool) {
+    currFunc := c.module.NamedFunction(c.currFunc)
+    if node.Init != nil {
+        c.generateVarDecl(node.Init, false)
+    }
+    entry := llvm.AddBasicBlock(currFunc, "")
+    body := llvm.AddBasicBlock(currFunc, "")
+    exit  := llvm.AddBasicBlock(currFunc, "")
+    c.builder.CreateBr(entry)
+
+    c.builder.SetInsertPoint(entry, entry.LastInstruction())
+    cond := c.generateExpression(node.Cond)
+    c.builder.CreateCondBr(cond, body, exit)
+
+    c.builder.SetInsertPoint(body, body.LastInstruction())
+    if ret = c.generateBlock(node.Body); !ret {
+        if node.Post != nil {
+        switch t := node.Post.(type) {
+            case *parser.AssignStmtNode:
+                c.generateAssign(t)
+            case *parser.CallStmtNode:
+                c.generateCall(t.Call, null)
+            }
+        }
+
+        c.builder.CreateBr(entry)
+    }
+    c.builder.SetInsertPoint(exit, exit.LastInstruction())
+
     return
 }
 
