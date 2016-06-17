@@ -1,0 +1,47 @@
+func () > main > () {
+    List list = make List < ();
+    
+    Node item = make Node < (5);
+    list.append(item);
+    list.append(item);
+
+    printf("%d", list.length);
+}
+
+tmpl List {
+    Node head;
+    int length;
+
+    constructor < () {
+        this.length = 0;
+    }
+
+    func (Node node) > append > () {
+        if (this.length == 0) {
+            this.head = node;
+        } else {
+            Node last = this.get(this.length);
+            last.next = node;
+        }
+
+        this.length = this.length + 1;
+    }
+
+    func (int depth) > get > (Node) {
+        Node node = this.head;
+        for (; depth != 0; depth = depth - 1) {
+            node = node.next;
+        }
+
+        return node;
+    }
+}
+
+tmpl Node {
+    Node next;
+    int value;
+
+    constructor < (int val) {
+        this.value = val;
+    }
+}

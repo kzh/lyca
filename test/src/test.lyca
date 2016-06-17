@@ -1,2 +1,9 @@
-func () > main > () {
+func () > main > (int) {
+    int i = subtract(5);
+    return i;
+}
+
+func (int i) > subtract > (int) {
+    i = i - 1;
+    return i;
 }

@@ -93,14 +93,8 @@ func (c *Codegen) declareFunc(n *parser.FuncNode, obj llvm.Type) {
     f := c.getLLVMFuncType(sig.Return, sig.Parameters, obj)
     llvmf := llvm.AddFunction(c.module, name, f)
 
-    offset := 0
     if obj != llvm.VoidType() {
         llvmf.Param(0).SetName("this")
-        offset = 1
-    }
-
-    for i, name := range sig.Parameters {
-        llvmf.Param(i + offset).SetName(name.Name.Value)
     }
 
     block := llvm.AddBasicBlock(c.module.NamedFunction(name),"entry")
@@ -181,6 +175,20 @@ func (c *Codegen) generateFunc(node *parser.FuncNode) {
     c.currFunc = c.mangle(node.Signature.Name.Value)
     block := c.functions[c.currFunc]
     c.builder.SetInsertPoint(block, block.LastInstruction())
+    llvmf := c.module.NamedFunction(c.currFunc)
+
+    offset := 0
+    if llvmf.ParamsCount() > 0 && llvmf.Param(0).Name() == "this" {
+        offset = 1
+    }
+
+    for i, name := range node.Signature.Parameters {
+        param := llvmf.Param(i + offset)
+        alloca := c.builder.CreateAlloca(param.Type(), name.Name.Value)
+        c.builder.CreateStore(param, alloca)
+
+        c.scope.AddVariable(name.Name.Value, alloca)
+    }
 
     ret := c.generateBlock(node.Body)
     if !ret {
