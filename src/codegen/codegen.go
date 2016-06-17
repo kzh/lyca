@@ -421,7 +421,6 @@ func (c *Codegen) generateAccess(node parser.Node, val bool) (v llvm.Value) {
     }
 
     if val {
-        c.tree.PrintNode(node)
         v = c.builder.CreateLoad(v, "")
     }
     return

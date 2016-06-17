@@ -213,10 +213,6 @@ func (p *AST) Print() {
     }
 }
 
-func (p *AST) PrintNode(node Node) {
-    p.printNode(node, 0)
-}
-
 func (p *AST) printNode(node Node, pad int) {
     if node == nil {
         return

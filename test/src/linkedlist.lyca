@@ -1,10 +1,11 @@
 func () > main > () {
     List list = make List < ();
     
-    Node item = make Node < ();
-    list.append(item);
+    list.append(make Node < (10));
+    list.append(make Node < (4));
+    list.append(make Node < (3));
 
-    printf("%d", list.length);
+    list.print();
 }
 
 tmpl List {
@@ -19,7 +20,7 @@ tmpl List {
         if (this.length == 0) {
             this.head = node;
         } else {
-            Node last = this.get(this.length);
+            Node last = this.get(this.length - 1);
             last.next = node;
         }
 
@@ -33,6 +34,14 @@ tmpl List {
         }
 
         return node;
+    }
+
+    func () > print > () {
+        Node node = this.head;
+        for (int i = 0; i != this.length; i = i + 1) {
+            printf("Index: %d Value: %d \n", i, node.value);
+            node = node.next;
+        }
     }
 }
 
