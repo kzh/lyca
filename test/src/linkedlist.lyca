@@ -1,8 +1,7 @@
 func () > main > () {
     List list = make List < ();
     
-    Node item = make Node < (5);
-    list.append(item);
+    Node item = make Node < ();
     list.append(item);
 
     printf("%d", list.length);

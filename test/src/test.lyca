@@ -1,9 +1,12 @@
 func () > main > (int) {
-    int i = subtract(5);
-    return i;
+    Person p = make Person < (5);
+    return p.id;
 }
 
-func (int i) > subtract > (int) {
-    i = i - 1;
-    return i;
+tmpl Person { 
+    int id;
+
+    constructor < (int id) {
+        this.id = id;
+    }
 }

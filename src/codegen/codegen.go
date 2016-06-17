@@ -230,6 +230,7 @@ func (c *Codegen) generateTemplateDecl(node *parser.TemplateNode) {
        f := &parser.FuncNode{
             Signature: &parser.FuncSignatureNode{
                 Name: parser.Identifier{Value: "-" + name},
+                Parameters: node.Constructor.Parameters,
             },
             Body: node.Constructor.Body,
         }
@@ -420,6 +421,7 @@ func (c *Codegen) generateAccess(node parser.Node, val bool) (v llvm.Value) {
     }
 
     if val {
+        c.tree.PrintNode(node)
         v = c.builder.CreateLoad(v, "")
     }
     return
