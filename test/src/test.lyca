@@ -1,12 +1,16 @@
 func () > main > (int) {
-    Person p = make Person < (5);
+    Person p;
+
+    if (p == null) {
+        printf("Hello");
+    }
+
+    p = make Person < ();
     return p.id;
 }
 
 tmpl Person { 
     int id;
 
-    constructor < (int id) {
-        this.id = id;
-    }
+    Person next;
 }

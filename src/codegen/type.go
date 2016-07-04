@@ -1,13 +1,13 @@
 package codegen
 
 import (
-//    "log"
+    "log"
 
     "llvm.org/llvm/bindings/go/llvm"
     "github.com/furryfaust/lyca/src/parser"
 )
 
-var PRIMITIVE_TYPES map[string]llvm.Type = map[string]llvm.Type {
+var PRIMITIVE_TYPES = map[string]llvm.Type {
     "int": llvm.Int32Type(), "char": llvm.Int8Type(), "float": llvm.FloatType(), "boolean": llvm.Int1Type(),
 }
 
@@ -101,6 +101,11 @@ func (c *Codegen) getUnderlyingType(t llvm.Type) llvm.Type {
 func (c *Codegen) convert(val llvm.Value, t llvm.Type) llvm.Value {
     if val.Type() == t {
         return val
+    }
+
+    if val == c.scope.GetValue("null") {
+        log.Println("Null conversion")
+        return llvm.ConstPointerNull(t)
     }
 
     switch val.Type() {

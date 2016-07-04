@@ -277,6 +277,15 @@ func (c *Codegen) generateMake(node *parser.MakeExprNode) llvm.Value {
     t := c.templates[node.Template.Value]
     alloc := c.builder.CreateMalloc(t.Type, "")
 
+    for i, el := range t.Type.StructElementTypes() {
+        if el.TypeKind() == llvm.PointerTypeKind {
+            access := c.builder.CreateStructGEP(alloc, i, "");
+            store  := llvm.ConstPointerNull(el);
+
+            c.builder.CreateStore(store, access);
+        }
+    }
+
     if t.HasConstructor {
         call := &parser.CallExprNode{
             Function: &parser.VarAccessNode{Name: parser.Identifier{Value: "-" + node.Template.Value}},
@@ -381,7 +390,11 @@ func (c *Codegen) generateVarDecl(node *parser.VarDeclNode, global bool) {
 
     var alloc, val llvm.Value
     if node.Value == nil {
-        val = llvm.Undef(t)
+        if t.TypeKind() == llvm.PointerTypeKind {
+            val = c.convert(c.scope.GetValue("null"), t)
+        } else {
+            val = llvm.Undef(t)
+        }
     } else {
         val = c.convert(c.generateExpression(node.Value), t)
     }
@@ -405,6 +418,10 @@ func (c *Codegen) generateAccess(node parser.Node, val bool) (v llvm.Value) {
             return param
         } else {
             v = c.scope.GetValue(name);
+
+            if name == "null" {
+                return
+            }
         }
     case *parser.ObjectAccessNode:
         obj := c.generateAccess(t.Object, true)
@@ -459,6 +476,10 @@ func (c *Codegen) generateBinaryExpression(node *parser.BinaryExprNode) llvm.Val
         right = c.convert(right, PRIMITIVE_TYPES["float"])
     } else if left.Type() == PRIMITIVE_TYPES["int"] && right.Type() == PRIMITIVE_TYPES["float"] {
         left = c.convert(left, PRIMITIVE_TYPES["float"])
+    } else if left == c.scope.GetValue("null") {
+        left = c.convert(left, right.Type())
+    } else if right == c.scope.GetValue("null") {
+        right = c.convert(right, left.Type())
     }
 
     switch node.Operator.Value {
@@ -508,11 +529,11 @@ func (c *Codegen) generateArithmeticBinaryExpr(left, right llvm.Value, op string
 }
 
 var (
-    intPredicates map[string]llvm.IntPredicate = map[string]llvm.IntPredicate{
+    intPredicates = map[string]llvm.IntPredicate{
         ">": llvm.IntSGT, ">=": llvm.IntSGE, "<": llvm.IntSLT, "<=": llvm.IntSLE, "==": llvm.IntEQ, "!=": llvm.IntNE,
     }
 
-    floatPredicates map[string]llvm.FloatPredicate = map[string]llvm.FloatPredicate{
+    floatPredicates = map[string]llvm.FloatPredicate{
         ">": llvm.FloatOGT, ">=": llvm.FloatOGE, "<": llvm.FloatOLT, "<=": llvm.FloatOLE, "==": llvm.FloatOEQ, "!=": llvm.FloatONE,
     }
 )
@@ -522,6 +543,7 @@ func (c *Codegen) generateComparisonBinaryExpr(left, right llvm.Value, op string
     if t == PRIMITIVE_TYPES["float"] {
         return c.builder.CreateFCmp(floatPredicates[op], left, right, "")
     } else if t == PRIMITIVE_TYPES["int"] || op == "==" || op == "!=" {
+        log.Println("Left:", left.Type(), "Right:", right.Type())
         return c.builder.CreateICmp(intPredicates[op], left, right, "")
     }
 

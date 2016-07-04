@@ -22,6 +22,8 @@ func (c *Codegen) mangle(name string) string {
 func (c *Codegen) injectStdLib() {
     c.declareMemcpy();
 
+    c.defineConstants();
+
     c.stdString();
 }
 
@@ -34,6 +36,11 @@ func (c *Codegen) declareMemcpy() {
         PRIMITIVE_TYPES["boolean"],
     }, false)
     llvm.AddFunction(c.module, "llvm.memcpy.p0i8.p0i8.i32", t)
+}
+
+func (c *Codegen) defineConstants() {
+    nullVal := llvm.ConstPointerNull(llvm.PointerType(llvm.Int8Type(), 0))
+    c.scope.AddVariable("null", nullVal)
 }
 
 func (c *Codegen) stdString() {

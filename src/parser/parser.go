@@ -752,7 +752,7 @@ func (p *parser) parseNumLit() (res *NumLitNode) {
     return
 }
 
-var ESCAPE map[rune]rune = map[rune]rune{
+var ESCAPE = map[rune]rune{
     '\\': '\\',
     'n': '\n',
 }
