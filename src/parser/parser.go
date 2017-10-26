@@ -4,7 +4,7 @@ import (
     "log"
     "strings"
     "strconv"
-    "github.com/furryfaust/lyca/src/lexer"
+    "github.com/k3v/lyca/src/lexer"
 )
 
 var OPERATOR_PRECEDENCE map[string]int = map[string]int{

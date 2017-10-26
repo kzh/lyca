@@ -3,7 +3,7 @@ package parser
 import (
     "log"
     "strconv"
-    "github.com/furryfaust/lyca/src/lexer"
+    "github.com/k3v/lyca/src/lexer"
 )
 
 type Node interface {

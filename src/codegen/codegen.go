@@ -4,7 +4,7 @@ import (
     "log"
 
     "llvm.org/llvm/bindings/go/llvm"
-    "github.com/furryfaust/lyca/src/parser"
+    "github.com/k3v/lyca/src/parser"
 )
 
 type Template struct {
@@ -543,7 +543,7 @@ func (c *Codegen) generateComparisonBinaryExpr(left, right llvm.Value, op string
     if t == PRIMITIVE_TYPES["float"] {
         return c.builder.CreateFCmp(floatPredicates[op], left, right, "")
     } else if t == PRIMITIVE_TYPES["int"] || op == "==" || op == "!=" {
-        log.Println("Left:", left.Type(), "Right:", right.Type())
+        //log.Println("Left:", left.Type(), "Right:", right.Type())
         return c.builder.CreateICmp(intPredicates[op], left, right, "")
     }
 

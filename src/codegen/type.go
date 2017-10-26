@@ -4,7 +4,7 @@ import (
     "log"
 
     "llvm.org/llvm/bindings/go/llvm"
-    "github.com/furryfaust/lyca/src/parser"
+    "github.com/k3v/lyca/src/parser"
 )
 
 var PRIMITIVE_TYPES = map[string]llvm.Type {
